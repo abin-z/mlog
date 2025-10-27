@@ -1,0 +1,6 @@
+[submodule "3rd/spdlog"]
+	path = 3rd/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "3rd/filesystem"]
+	path = 3rd/filesystem
+	url = https://github.com/gulrak/filesystem.git
