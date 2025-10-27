@@ -39,5 +39,5 @@ endif()
 add_subdirectory(3rd/filesystem)
 add_subdirectory(3rd/spdlog)
 
-add_subdirectory(example)
+add_subdirectory(examples)
 add_subdirectory(logger)
