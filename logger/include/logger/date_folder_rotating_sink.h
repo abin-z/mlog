@@ -85,7 +85,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 
     // 使用自定义文件名
     std::string log_file = (folder / log_file_name_).string();
-    rotating_sink_.reset(new internal_sink_t(log_file, max_size_, max_files_, true));
+    rotating_sink_.reset(new internal_sink_t(log_file, max_size_, max_files_, false)); // TODO: 日志格式丢失 
 
     // 计算当天最后时刻的 time_point
     std::time_t t = std::chrono::system_clock::to_time_t(now);
