@@ -7,7 +7,7 @@ int main()
 {
   std::cout << "Logger Example" << std::endl;
   ModuleLogger logger("example");
-  auto sink = std::make_shared<date_folder_rotating_sink_mt>("./logs", 5*1024*1024, 3);
+  auto sink = std::make_shared<date_folder_rotating_sink_mt>("./logs", "log.txt", 5*1024*1024, 3);
   logger.info("Hello, {}!", "world");
   return 0;
 }

@@ -7,7 +7,7 @@
 #include <ctime>
 #include <memory>
 #include <mutex>
-#include <sstream>
+#include <type_traits>
 
 #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
 #if __has_include(<filesystem>)
@@ -25,8 +25,9 @@ template <typename Mutex>
 class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 {
  public:
-  date_folder_rotating_sink(const std::string& base_path, size_t max_size = 10 * 1024 * 1024, size_t max_files = 5) :
-    base_path_(base_path), max_size_(max_size), max_files_(max_files)
+  date_folder_rotating_sink(const std::string& base_path, const std::string& log_file_name = "log.txt",
+                            size_t max_size = 100 * 1024 * 1024, size_t max_files = 9) :
+    base_path_(base_path), log_file_name_(log_file_name), max_size_(max_size), max_files_(max_files)
   {
     roll_if_needed(std::chrono::system_clock::now());
   }
@@ -49,9 +50,15 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 
  private:
   std::string base_path_;
+  std::string log_file_name_;
   size_t max_size_;
   size_t max_files_;
-  std::unique_ptr<spdlog::sinks::rotating_file_sink_mt> rotating_sink_;
+
+  using internal_sink_t =
+    typename std::conditional<std::is_same<Mutex, std::mutex>::value, spdlog::sinks::rotating_file_sink_mt,
+                              spdlog::sinks::rotating_file_sink_st>::type;
+
+  std::unique_ptr<internal_sink_t> rotating_sink_;
   std::chrono::system_clock::time_point next_roll_time_;
 
   // 获取日期字符串 YYYY-MM-DD
@@ -76,9 +83,9 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
     fs::path folder = fs::path(base_path_) / date;
     fs::create_directories(folder);
 
-    // 创建 rotating sink
-    std::string log_file = (folder / "log.txt").string();
-    rotating_sink_.reset(new spdlog::sinks::rotating_file_sink_mt(log_file, max_size_, max_files_, true));
+    // 使用自定义文件名
+    std::string log_file = (folder / log_file_name_).string();
+    rotating_sink_.reset(new internal_sink_t(log_file, max_size_, max_files_, true));
 
     // 计算当天最后时刻的 time_point
     std::time_t t = std::chrono::system_clock::to_time_t(now);
