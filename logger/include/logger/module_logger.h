@@ -64,6 +64,7 @@ class ModuleLogger
   std::size_t max_file_size_;
   std::size_t max_files_;
   std::mutex mtx_;  // 多线程安全
+  int64_t day_end_timestamp_;
 
   // 获取今天日期
   std::string get_today_folder() const;
