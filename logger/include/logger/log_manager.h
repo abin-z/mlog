@@ -15,5 +15,6 @@ class LogManager
   static std::shared_ptr<spdlog::logger> getLogger(const std::string& module);
 
   /// 设置全局日志级别（会影响所有 logger）
-  static void setGlobalLevel(spdlog::level::level_enum level);
+  static void setFileGlobalLevel(spdlog::level::level_enum level);
+  static void setStdoutGlobalLevel(spdlog::level::level_enum level);
 };

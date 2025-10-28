@@ -3,20 +3,23 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <thread>
 
 #include "logger/log_manager.h"
 
-// 包含你之前实现的 date_folder_rotating_sink
-#include "logger/date_folder_rotating_sink.h"
-
 int main()
 {
   try
   {
+#if defined(_WIN32)
+    std::system("chcp 65001");  // 设置控制台为 UTF-8 编码
+#endif
     auto logger = LogManager::getLogger("my_logger");
+    // LogManager::setStdoutGlobalLevel(spdlog::level::level_enum::info);  // 设置控制台日志级别为 info
+    // LogManager::setFileGlobalLevel(spdlog::level::level_enum::warn);  // 设置文件日志级别为 warn
 
     // 打印不同级别日志
     logger->trace("这是一条 trace 日志");  // 不会输出，因为 level = info
