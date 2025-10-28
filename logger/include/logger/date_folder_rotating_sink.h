@@ -1,5 +1,6 @@
 #pragma once
 #include <spdlog/details/null_mutex.h>
+#include <spdlog/pattern_formatter.h>  // <- for pattern_formatter
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 
@@ -11,12 +12,11 @@
 
 #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
 #if __has_include(<filesystem>)
-#define GHC_USE_STD_FS
 #include <filesystem>
 namespace fs = std::filesystem;
 #endif
 #endif
-#ifndef GHC_USE_STD_FS
+#ifndef fs
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 #endif
@@ -25,32 +25,51 @@ template <typename Mutex>
 class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 {
  public:
-  date_folder_rotating_sink(const std::string& base_path, const std::string& log_file_name = "log.txt",
-                            size_t max_size = 100 * 1024 * 1024, size_t max_files = 9) :
-    base_path_(base_path), log_file_name_(log_file_name), max_size_(max_size), max_files_(max_files)
+  date_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
+                            size_t max_size = 100 * 1024 * 1024, size_t max_files = 10) :
+    base_path_(std::move(base_path)), log_filename_(std::move(log_filename)), max_size_(max_size), max_files_(max_files)
   {
-    roll_if_needed(std::chrono::system_clock::now());
+    roll_to_today();
   }
 
  protected:
-  void sink_it_(const spdlog::details::log_msg& msg) override
+  // 必须实现：写日志
+  void sink_it_(const spdlog::details::log_msg &msg) override
   {
     auto now = std::chrono::system_clock::now();
     if (now >= next_roll_time_)
     {
-      roll_if_needed(now);
+      roll_to_today();
     }
-    rotating_sink_->log(msg);
+    if (internal_sink_) internal_sink_->log(msg);
   }
 
+  // 必须实现：flush
   void flush_() override
   {
-    rotating_sink_->flush();
+    if (internal_sink_) internal_sink_->flush();
+  }
+
+  // 注意：重写带下划线的方法！base_sink 会在 set_pattern() 调用时加锁并转而调用此方法。
+  void set_pattern_(const std::string &pattern) override
+  {
+    // base_sink::set_pattern_ 的默认实现会创建一个 pattern_formatter，
+    // 我们也要做同样的事，并同步到内部 sink
+    this->formatter_ = std::make_unique<spdlog::pattern_formatter>(pattern);
+    if (internal_sink_) internal_sink_->set_formatter(this->formatter_->clone());
+  }
+
+  // 同理重写 set_formatter_，base_sink::set_formatter() 会调用此方法（并加锁）
+  void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter) override
+  {
+    // 保存 formatter（拥有所有权）
+    this->formatter_ = std::move(sink_formatter);
+    if (internal_sink_) internal_sink_->set_formatter(this->formatter_->clone());
   }
 
  private:
   std::string base_path_;
-  std::string log_file_name_;
+  std::string log_filename_;
   size_t max_size_;
   size_t max_files_;
 
@@ -58,11 +77,10 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
     typename std::conditional<std::is_same<Mutex, std::mutex>::value, spdlog::sinks::rotating_file_sink_mt,
                               spdlog::sinks::rotating_file_sink_st>::type;
 
-  std::unique_ptr<internal_sink_t> rotating_sink_;
+  std::unique_ptr<internal_sink_t> internal_sink_;
   std::chrono::system_clock::time_point next_roll_time_;
 
-  // 获取日期字符串 YYYY-MM-DD
-  static std::string date_str(const std::chrono::system_clock::time_point& tp)
+  static std::string date_str(const std::chrono::system_clock::time_point &tp)
   {
     std::time_t t = std::chrono::system_clock::to_time_t(tp);
     std::tm tm;
@@ -73,21 +91,28 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 #endif
     char buf[16];
     std::strftime(buf, sizeof(buf), "%Y-%m-%d", &tm);
-    return std::string(buf);
+    return buf;
   }
 
-  void roll_if_needed(const std::chrono::system_clock::time_point& now)
+  void roll_to_today()
   {
-    // 创建日期文件夹
-    std::string date = date_str(now);
-    fs::path folder = fs::path(base_path_) / date;
+    auto now = std::chrono::system_clock::now();
+
+    // 生成日期目录
+    auto folder = fs::path(base_path_) / date_str(now);
     fs::create_directories(folder);
 
-    // 使用自定义文件名
-    std::string log_file = (folder / log_file_name_).string();
-    rotating_sink_.reset(new internal_sink_t(log_file, max_size_, max_files_, false)); // TODO: 日志格式丢失 
+    auto full_path = (folder / log_filename_).string();
 
-    // 计算当天最后时刻的 time_point
+    // 新建 rotating sink（选择 mt 或 st）
+    auto new_sink = std::make_unique<internal_sink_t>(full_path, max_size_, max_files_, false);
+
+    // 继承已有 formatter（如果有）
+    if (this->formatter_) new_sink->set_formatter(this->formatter_->clone());
+
+    internal_sink_ = std::move(new_sink);
+
+    // 计算下次切换时间（次日 00:00:00）
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm tm;
 #ifdef _WIN32
@@ -95,21 +120,15 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 #else
     localtime_r(&t, &tm);
 #endif
-    tm.tm_hour = 23;
-    tm.tm_min = 59;
-    tm.tm_sec = 59;
-
-    std::time_t last_sec = std::mktime(&tm);
-    next_roll_time_ = std::chrono::system_clock::from_time_t(last_sec) + std::chrono::milliseconds(999);
-
-    // 继承格式化器
-    if (this->formatter_)
-    {
-      rotating_sink_->set_formatter(this->formatter_->clone());
-    }
+    tm.tm_hour = 0;
+    tm.tm_min = 0;
+    tm.tm_sec = 0;
+    tm.tm_mday += 1;
+    std::time_t next_day = std::mktime(&tm);
+    next_roll_time_ = std::chrono::system_clock::from_time_t(next_day);
   }
 };
 
-// 方便使用的别名
+// 便捷别名
 using date_folder_rotating_sink_mt = date_folder_rotating_sink<std::mutex>;
 using date_folder_rotating_sink_st = date_folder_rotating_sink<spdlog::details::null_mutex>;
