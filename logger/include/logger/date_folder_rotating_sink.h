@@ -32,6 +32,30 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
     roll_to_today();
   }
 
+  void set_max_size(size_t max_size)
+  {
+    max_size_ = max_size;
+    if (internal_sink_) internal_sink_->set_max_size(max_size_);
+  }
+
+  void set_max_files(size_t max_files)
+  {
+    max_files_ = max_files;
+    if (internal_sink_) internal_sink_->set_max_files(max_files_);
+  }
+
+  std::size_t get_max_size()
+  {
+    if (internal_sink_) return internal_sink_->get_max_size();
+    return max_size_;
+  }
+
+  std::size_t get_max_files()
+  {
+    if (internal_sink_) return internal_sink_->get_max_files();
+    return max_files_;
+  }
+
  protected:
   // 必须实现：写日志
   void sink_it_(const spdlog::details::log_msg &msg) override

@@ -1,45 +1,60 @@
+#include <spdlog/logger.h>
+#include <spdlog/sinks/sink.h>
 #include <spdlog/spdlog.h>
 
+#include <chrono>
 #include <iostream>
 #include <memory>
+#include <thread>
 
+
+// 包含你之前实现的 date_folder_rotating_sink
 #include "logger/date_folder_rotating_sink.h"
-
 
 int main()
 {
-  std::cout << "Logger Example" << std::endl;
-
-  // -------------------------------
-  // 1️⃣ 创建自定义 sink（每天文件夹 + rotating）
-  auto sink = std::make_shared<date_folder_rotating_sink_mt>("./logs",         // 日志根目录
-                                                             "myapp.log",      // 文件名
-                                                             5 * 1024 * 1024,  // max_size
-                                                             3                 // max_files
-  );
-
-  // -------------------------------
-  // 2️⃣ 创建 logger，并设置默认 logger
-  auto logger = std::make_shared<spdlog::logger>("daily_logger", sink);
-
-  // 给 logger 设置 pattern，这样 sink 的 pattern 会生效
-  logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %v");
-
-  // 注册 logger（可选）
-  spdlog::register_logger(logger);
-
-  // 设置为默认 logger，这样 spdlog::info() 会使用它
-  spdlog::set_default_logger(logger);
-
-  // -------------------------------
-  // 3️⃣ 写日志
-  for (int i = 0; i < 100; ++i)
+  try
   {
-    spdlog::info("Test log {}", i);
-  }
+    // 创建自定义 sink
+    auto sink = std::make_shared<date_folder_rotating_sink_mt>("./logs", "app.log", 1024 * 1024, 3);
 
-  // 自动 flush
-  spdlog::flush_on(spdlog::level::info);
+    // 设置日志格式
+    sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
+
+    // 设置日志级别
+    sink->set_level(spdlog::level::info);
+    // 数字越大越旧，当前文件永远是无后缀的日志文件。
+    sink->set_max_size(1024);  // 1kB
+    sink->set_max_files(10);  // 10 files
+
+    // 创建 logger
+    auto logger = std::make_shared<spdlog::logger>("my_logger", sink);
+
+    spdlog::register_logger(logger);
+
+    // 打印不同级别日志
+    logger->trace("这是一条 trace 日志");  // 不会输出，因为 level = info
+    logger->debug("这是一条 debug 日志");  // 不会输出
+    logger->info("这是一条 info 日志");    // 会输出
+    logger->warn("这是一条 warn 日志");    // 会输出
+    logger->error("这是一条 error 日志");  // 会输出
+
+    // 模拟多条日志输出
+    for (int i = 0; i < 10; ++i)
+    {
+      logger->info("日志测试条目 #{}", i);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // 刷新日志
+    logger->flush();
+
+    spdlog::drop("my_logger");  // 卸载 logger
+  }
+  catch (const spdlog::spdlog_ex &ex)
+  {
+    std::cerr << "Log 初始化失败: " << ex.what() << std::endl;
+  }
 
   return 0;
 }
