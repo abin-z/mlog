@@ -7,6 +7,7 @@
 #include <memory>
 #include <thread>
 
+#include "logger/log_manager.h"
 
 // 包含你之前实现的 date_folder_rotating_sink
 #include "logger/date_folder_rotating_sink.h"
@@ -15,22 +16,7 @@ int main()
 {
   try
   {
-    // 创建自定义 sink
-    auto sink = std::make_shared<date_folder_rotating_sink_mt>("./logs", "app.log", 1024 * 1024, 3);
-
-    // 设置日志格式
-    sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-
-    // 设置日志级别
-    sink->set_level(spdlog::level::info);
-    // 数字越大越旧，当前文件永远是无后缀的日志文件。
-    sink->set_max_size(1024);  // 1kB
-    sink->set_max_files(10);  // 10 files
-
-    // 创建 logger
-    auto logger = std::make_shared<spdlog::logger>("my_logger", sink);
-
-    spdlog::register_logger(logger);
+    auto logger = LogManager::getLogger("my_logger");
 
     // 打印不同级别日志
     logger->trace("这是一条 trace 日志");  // 不会输出，因为 level = info
@@ -48,8 +34,6 @@ int main()
 
     // 刷新日志
     logger->flush();
-
-    spdlog::drop("my_logger");  // 卸载 logger
   }
   catch (const spdlog::spdlog_ex &ex)
   {
