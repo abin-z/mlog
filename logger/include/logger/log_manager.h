@@ -35,6 +35,14 @@ class LogManager
   static std::shared_ptr<spdlog::logger> getLogger(const std::string& module);
 
   /**
+   * @brief 将已有 logger 添加到 LogManager 管理（并注册到 spdlog 全局注册表）
+   * @param logger 需要添加的 std::shared_ptr<spdlog::logger> 对象
+   * @return 如果 logger 为空或已存在同名 logger 返回 false，否则返回 true
+   * @note 添加后 LogManager 会接管管理该 logger 的生命周期
+   */
+  static bool addLogger(std::shared_ptr<spdlog::logger> logger);
+
+  /**
    * @brief 设置文件日志全局级别
    *
    * 会遍历所有已创建的 logger 并更新其文件 sink 的日志级别，

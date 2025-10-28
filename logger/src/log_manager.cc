@@ -71,6 +71,22 @@ std::shared_ptr<spdlog::logger> LogManager::getLogger(const std::string& module)
   return logger;
 }
 
+bool LogManager::addLogger(std::shared_ptr<spdlog::logger> logger)
+{
+  if (!logger) return false;
+
+  auto& loggers = get_logger_map();
+  auto& mtx = get_logger_mutex();
+
+  std::lock_guard<std::mutex> lock(mtx);
+  auto it = loggers.find(logger->name());
+  if (it != loggers.end()) return false;  // 已存在同名 logger
+
+  loggers[logger->name()] = logger;
+  spdlog::register_logger(logger);
+  return true;
+}
+
 void LogManager::setFileGlobalLevel(spdlog::level::level_enum level)
 {
   auto& loggers = get_logger_map();
