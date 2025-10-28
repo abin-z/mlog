@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "logger/log_manager.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 int main()
 {
@@ -19,16 +20,16 @@ int main()
 #endif
     auto logger = LogManager::getLogger("my_logger");
     logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] [%n] %v");
-    logger->sinks()[0]->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v"); // 注意logger和sink的pattern是分开的, logger会覆盖sink的pattern
-    
-    
-    auto logger2 = LogManager::getLogger("logger2");
-    logger2->set_level(spdlog::level::trace); // logger2的日志级别设置为 trace, 这个会优先过滤
-    logger2->sinks()[0]->set_level(spdlog::level::level_enum::trace);  // 设置 logger2 的文件 sink 日志级别为 trace
-    logger2->sinks()[1]->set_level(spdlog::level::info);  // 设置 logger2 的文件 sink 日志级别为 info
+    // 注意logger和sink的pattern是分开的, logger会覆盖sink的pattern
+    logger->sinks()[0]->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
-    // LogManager::setStdoutGlobalLevel(spdlog::level::level_enum::info);  // 设置控制台日志级别为 info
-    // LogManager::setFileGlobalLevel(spdlog::level::level_enum::warn);  // 设置文件日志级别为 warn
+    auto logger2 = LogManager::getLogger("logger2");
+    logger2->set_level(spdlog::level::trace);              // logger2的日志级别设置为 trace, 这个会优先过滤
+    logger2->sinks()[0]->set_level(spdlog::level::trace);  // 设置 logger2 的文件 sink 日志级别为 trace
+    logger2->sinks()[1]->set_level(spdlog::level::info);   // 设置 logger2 的文件 sink 日志级别为 info
+
+    // LogManager::setStdoutGlobalLevel(spdlog::level::info);  // 设置控制台日志级别为 info
+    // LogManager::setFileGlobalLevel(spdlog::level::warn);    // 设置文件日志级别为 warn
 
     // 打印不同级别日志
     logger->trace("这是一条 trace 日志");  // 不会输出，因为 level = info
@@ -36,7 +37,6 @@ int main()
     logger->info("这是一条 info 日志");    // 会输出
     logger->warn("这是一条 warn 日志");    // 会输出
     logger->error("这是一条 error 日志");  // 会输出
-
 
     logger2->trace("这是一条 trace 日志");  // 不会输出，因为 level = info
     logger2->debug("这是一条 debug 日志");  // 不会输出
@@ -54,6 +54,15 @@ int main()
 
     // 刷新日志
     logger->flush();
+
+    // 测试添加已有 logger
+    auto another_logger = spdlog::basic_logger_mt("basic_logger", "logs/basic-log.log");
+    // auto another_logger = std::make_shared<spdlog::logger>("basic_logger",
+    // std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/basic-log.txt"));
+    LogManager::addLogger(another_logger);
+    another_logger->info("这是 basic_logger 的一条日志");
+    another_logger->warn("这是 basic_logger 的一条警告日志");
+    another_logger->error("这是 basic_logger 的一条错误日志");
   }
   catch (const spdlog::spdlog_ex &ex)
   {
