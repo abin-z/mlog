@@ -83,7 +83,11 @@ bool LogManager::addLogger(std::shared_ptr<spdlog::logger> logger)
   if (it != loggers.end()) return false;  // 已存在同名 logger
 
   loggers[logger->name()] = logger;
-  spdlog::register_logger(logger);
+  // 先检查 spdlog 内部是否已有同名 logger
+  if (!spdlog::get(logger->name()))
+  {
+    spdlog::register_logger(logger);
+  }
   return true;
 }
 
