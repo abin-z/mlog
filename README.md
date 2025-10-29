@@ -1,6 +1,6 @@
 # mlog
 
-本日志库主要实现了**日期文件夹滚动日志**和**全局日志管理器**, 支持C++11标准, 依赖于[spdlog](https://github.com/gabime/spdlog).
+本日志库主要实现了**日期文件夹滚动日志**和**全局日志管理器**, 支持C++11标准, 依赖于[spdlog](https://github.com/gabime/spdlog) 和 [filesystem](https://github.com/gulrak/filesystem).
 
 ### 背景:
 
@@ -25,3 +25,22 @@
 - 支持文件日志和控制台日志（可在内部配置不同 sink）
 - 支持设置全局日志级别，影响所有已创建的 logger
 - 可以管理spdlog提供的`spdlog::logger`
+
+### 使用方式:
+
+说明: 项目依赖于[spdlog](https://github.com/gabime/spdlog) 和 filesystem(C++11需要[ghc::filesystem](https://github.com/gulrak/filesystem), C++17则直接使用`std::filesystem`);
+
+1. 将[logger](logger)文件夹拷贝到项目中
+
+2. 在顶层CMakeLists.txt中添加`add_subdirectory(logger)`;
+
+3. 在需要使用的模块链接`target_link_libraries(<target_name> PUBLIC logger)`
+
+4. 然后在源文件中include头文件即可使用:
+
+   ```cpp
+   #include "logger/date_folder_rotating_sink.h"
+   #include "logger/log_manager.h"
+   ```
+
+   
