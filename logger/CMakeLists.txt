@@ -11,4 +11,10 @@ add_library(${tgt_name} ${HEADERS} ${SOURCES})
 target_include_directories(${tgt_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 target_link_libraries(${tgt_name} PUBLIC spdlog::spdlog)
-target_link_libraries(${tgt_name} PUBLIC ghc_filesystem) # C++17 可直接使用`std::filesystem`
+# C++17 and above can use std::filesystem directly
+if (CMAKE_CXX_STANDARD LESS 17)
+    message(STATUS "Using ghc::filesystem (C++ standard < 17)")
+    target_link_libraries(${tgt_name} PUBLIC ghc_filesystem)
+else()
+    message(STATUS "Using std::filesystem (C++17 or higher)")
+endif()
