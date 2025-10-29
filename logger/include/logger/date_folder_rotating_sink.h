@@ -108,7 +108,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
   {
     // base_sink::set_pattern_ 的默认实现会创建一个 pattern_formatter，
     // 我们也要做同样的事，并同步到内部 sink
-    this->formatter_ = std::make_unique<spdlog::pattern_formatter>(pattern);
+    this->formatter_ = spdlog::details::make_unique<spdlog::pattern_formatter>(pattern);
     if (internal_sink_) internal_sink_->set_formatter(this->formatter_->clone());
   }
 
@@ -159,7 +159,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
     auto full_path = (folder / log_filename_).string();
 
     // 新建 rotating sink（选择 mt 或 st）
-    auto new_sink = std::make_unique<internal_sink_t>(full_path, max_size_, max_files_, false);
+    auto new_sink = spdlog::details::make_unique<internal_sink_t>(full_path, max_size_, max_files_, false);
 
     // 继承已有 formatter（如果有）
     if (this->formatter_) new_sink->set_formatter(this->formatter_->clone());
