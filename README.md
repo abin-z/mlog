@@ -2,6 +2,25 @@
 
 本日志库主要实现了**日期文件夹滚动日志**和**全局日志管理器**, 支持C++11标准, 依赖于[spdlog](https://github.com/gabime/spdlog) 和 [filesystem](https://github.com/gulrak/filesystem).
 
+### 实现效果
+
+```bash
+root@ubuntu:/mlog/build_output/bin# tree
+.
+├── logs
+│   ├── 2025-10-28
+│   │   ├── module1.log
+│   │   └── module2.log
+│   ├── 2025-10-29
+│   │   ├── module1.log
+│   │   └── module2.log
+│   ├── 2025-10-30
+│   │   ├── module1.log
+│   │   └── module2.log
+│   └── basicfile.log
+└── main
+```
+
 ### 背景:
 
 ​	事情是这样的, 我在写一个服务端程序. 需要连续不断地运行. 使用spdlog的`daily_file_sink`写日志. 但是运行多天之后文件夹有很多log文件, 虽然日志使用日期命名的. 但是同一天的不同日志在文件夹中相隔很远. 查看起来不方便.于是便有了把同一天日志放在一个以日期命名的文件夹下的. 方便后续查看日志! 然后就有了该库.
@@ -43,4 +62,4 @@
    #include "logger/log_manager.h"
    ```
 
-   
+
