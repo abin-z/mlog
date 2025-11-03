@@ -52,8 +52,10 @@ int main()
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    // 刷新日志
+    // spdlog存在缓存机制, 需要手动 flush 才能确保日志写入文件
     logger->flush();
+    // 每s刷新已注册的日志
+    spdlog::flush_every(std::chrono::seconds(1));
 
     // 测试添加已有 logger
     auto another_logger = spdlog::basic_logger_mt("basic_logger", "logs/basicfile.log");
