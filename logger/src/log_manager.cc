@@ -35,7 +35,7 @@ spdlog::level::level_enum& get_default_stdout_level()
 }
 }  // namespace
 
-std::shared_ptr<spdlog::logger> LogManager::getLogger(const std::string& module)
+std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string& module)
 {
   auto& loggers = get_logger_map();
   auto& mtx = get_logger_mutex();
@@ -71,7 +71,7 @@ std::shared_ptr<spdlog::logger> LogManager::getLogger(const std::string& module)
   return logger;
 }
 
-bool LogManager::addLogger(std::shared_ptr<spdlog::logger> logger)
+bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
 {
   if (!logger) return false;
 
@@ -91,7 +91,7 @@ bool LogManager::addLogger(std::shared_ptr<spdlog::logger> logger)
   return true;
 }
 
-void LogManager::setFileGlobalLevel(spdlog::level::level_enum level)
+void LogManager::set_file_global_level(spdlog::level::level_enum level)
 {
   auto& loggers = get_logger_map();
   auto& mtx = get_logger_mutex();
@@ -107,7 +107,7 @@ void LogManager::setFileGlobalLevel(spdlog::level::level_enum level)
   }
 }
 
-void LogManager::setStdoutGlobalLevel(spdlog::level::level_enum level)
+void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 {
   auto& loggers = get_logger_map();
   auto& mtx = get_logger_mutex();

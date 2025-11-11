@@ -18,12 +18,12 @@ int main()
 #if defined(_WIN32)
     std::system("chcp 65001");  // 设置控制台为 UTF-8 编码
 #endif
-    auto logger = LogManager::getLogger("module1");
+    auto logger = LogManager::get_logger("module1");
     logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] [%n] %v");
     // 注意logger和sink的pattern是分开的, logger会覆盖sink的pattern
     logger->sinks()[0]->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
-    auto logger2 = LogManager::getLogger("module2");
+    auto logger2 = LogManager::get_logger("module2");
     logger2->set_level(spdlog::level::trace);              // logger2的日志级别设置为 trace, 这个会优先过滤
     logger2->sinks()[0]->set_level(spdlog::level::trace);  // 设置 logger2 的文件 sink 日志级别为 trace
     logger2->sinks()[1]->set_level(spdlog::level::info);   // 设置 logger2 的文件 sink 日志级别为 info
@@ -61,7 +61,7 @@ int main()
     auto another_logger = spdlog::basic_logger_mt("basic_logger", "logs/basicfile.log");
     // auto another_logger = std::make_shared<spdlog::logger>("basic_logger",
     // std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/basicfile.txt"));
-    LogManager::addLogger(another_logger);
+    LogManager::add_logger(another_logger);
     another_logger->info("这是 basic_logger 的一条日志");
     another_logger->warn("这是 basic_logger 的一条警告日志");
     another_logger->error("这是 basic_logger 的一条错误日志");
