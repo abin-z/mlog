@@ -35,6 +35,12 @@ spdlog::level::level_enum &get_default_stdout_level()
 }
 }  // namespace
 
+std::string LogManager::s_save_path = "./logs";
+void LogManager::set_log_save_path(const std::string &path)
+{
+  s_save_path = path;
+}
+
 std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module)
 {
   auto &loggers = get_logger_map();
@@ -53,7 +59,7 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
   if (it != loggers.end()) return it->second;
 
   // === 文件 Sink（每天一个文件夹）===
-  auto file_sink = std::make_shared<date_folder_rotating_sink_mt>("./logs", module + ".log", 100 * 1024 * 1024, 10);
+  auto file_sink = std::make_shared<date_folder_rotating_sink_mt>(s_save_path, module + ".log", 100 * 1024 * 1024, 10);
   file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
   file_sink->set_level(get_default_file_level());
 
