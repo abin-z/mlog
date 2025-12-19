@@ -19,9 +19,9 @@
 class LogManager
 {
  public:
-  LogManager() = delete;                              ///< 禁止默认构造
-  LogManager(const LogManager&) = delete;             ///< 禁止拷贝构造
-  LogManager& operator=(const LogManager&) = delete;  ///< 禁止赋值
+  LogManager() = delete;                               ///< 禁止默认构造
+  LogManager(const LogManager &) = delete;             ///< 禁止拷贝构造
+  LogManager &operator=(const LogManager &) = delete;  ///< 禁止赋值
 
   /**
    * @brief 获取指定模块的 logger
@@ -32,7 +32,7 @@ class LogManager
    * @param module 模块名，例如 "web"、"service"、"db"
    * @return std::shared_ptr<spdlog::logger> 模块 logger 指针
    */
-  static std::shared_ptr<spdlog::logger> get_logger(const std::string& module);
+  static std::shared_ptr<spdlog::logger> get_logger(const std::string &module);
 
   /**
    * @brief 将已有 logger 添加到 LogManager 管理（并注册到 spdlog 全局注册表）

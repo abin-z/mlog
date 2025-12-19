@@ -10,35 +10,35 @@
 namespace
 {
 // 局部静态资源
-std::unordered_map<std::string, std::shared_ptr<spdlog::logger>>& get_logger_map()
+std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> &get_logger_map()
 {
   static std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> map;
   return map;
 }
 
-std::mutex& get_logger_mutex()
+std::mutex &get_logger_mutex()
 {
   static std::mutex mtx;
   return mtx;
 }
 
-spdlog::level::level_enum& get_default_file_level()
+spdlog::level::level_enum &get_default_file_level()
 {
   static spdlog::level::level_enum level = spdlog::level::info;
   return level;
 }
 
-spdlog::level::level_enum& get_default_stdout_level()
+spdlog::level::level_enum &get_default_stdout_level()
 {
   static spdlog::level::level_enum level = spdlog::level::warn;
   return level;
 }
 }  // namespace
 
-std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string& module)
+std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module)
 {
-  auto& loggers = get_logger_map();
-  auto& mtx = get_logger_mutex();
+  auto &loggers = get_logger_map();
+  auto &mtx = get_logger_mutex();
 
   // 快速路径：短锁查询
   {
@@ -75,8 +75,8 @@ bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
 {
   if (!logger) return false;
 
-  auto& loggers = get_logger_map();
-  auto& mtx = get_logger_mutex();
+  auto &loggers = get_logger_map();
+  auto &mtx = get_logger_mutex();
 
   std::lock_guard<std::mutex> lock(mtx);
   auto it = loggers.find(logger->name());
@@ -93,12 +93,12 @@ bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
 
 void LogManager::set_file_global_level(spdlog::level::level_enum level)
 {
-  auto& loggers = get_logger_map();
-  auto& mtx = get_logger_mutex();
+  auto &loggers = get_logger_map();
+  auto &mtx = get_logger_mutex();
   get_default_file_level() = level;
 
   std::lock_guard<std::mutex> lock(mtx);
-  for (auto& pair : loggers)
+  for (auto &pair : loggers)
   {
     if (pair.second->sinks().size() > 0)
     {
@@ -109,12 +109,12 @@ void LogManager::set_file_global_level(spdlog::level::level_enum level)
 
 void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 {
-  auto& loggers = get_logger_map();
-  auto& mtx = get_logger_mutex();
+  auto &loggers = get_logger_map();
+  auto &mtx = get_logger_mutex();
   get_default_stdout_level() = level;
 
   std::lock_guard<std::mutex> lock(mtx);
-  for (auto& pair : loggers)
+  for (auto &pair : loggers)
   {
     if (pair.second->sinks().size() > 1)
     {
