@@ -65,6 +65,7 @@ int main()
     another_logger->info("这是 basic_logger 的一条日志");
     another_logger->warn("这是 basic_logger 的一条警告日志");
     another_logger->error("这是 basic_logger 的一条错误日志");
+    LogManager::flush_all();
   }
   catch (const spdlog::spdlog_ex &ex)
   {
