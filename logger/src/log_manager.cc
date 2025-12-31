@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 #include "logger/date_folder_rotating_sink.h"
 
@@ -126,5 +127,25 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
     {
       pair.second->sinks()[1]->set_level(level);  // 第二个 sink 是控制台 sink
     }
+  }
+}
+
+void LogManager::flush_all()
+{
+  auto &loggers = get_logger_map();
+  auto &mtx = get_logger_mutex();
+
+  std::vector<std::shared_ptr<spdlog::logger>> all_loggers;
+  {
+    std::lock_guard<std::mutex> lock(mtx);
+    all_loggers.reserve(loggers.size());
+    for (const auto &pair : loggers)
+    {
+      all_loggers.push_back(pair.second);
+    }
+  }
+  for (const auto &logger : all_loggers)
+  {
+    if (logger) logger->flush();
   }
 }

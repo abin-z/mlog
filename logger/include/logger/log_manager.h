@@ -76,6 +76,13 @@ class LogManager
    */
   static void set_stdout_global_level(spdlog::level::level_enum level);
 
+  /**
+   * @brief 刷新所有 logger 的日志缓冲区
+   *
+   * 会调用 spdlog::logger::flush() 来确保所有日志都写入到对应的输出目标.
+   */
+  static void flush_all();
+
  private:
   static std::string s_save_path;  // 日志存储路径
 };
