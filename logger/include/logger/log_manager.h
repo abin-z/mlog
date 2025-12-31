@@ -22,6 +22,8 @@ class LogManager
   LogManager() = delete;                               ///< 禁止默认构造
   LogManager(const LogManager &) = delete;             ///< 禁止拷贝构造
   LogManager &operator=(const LogManager &) = delete;  ///< 禁止赋值
+  LogManager(LogManager &&) = delete;                  ///< 禁止移动构造
+  LogManager &operator=(LogManager &&) = delete;       ///< 禁止移动赋值
 
   /**
    * @brief 设置日志文件的保存目录
