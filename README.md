@@ -1,6 +1,6 @@
 # mlog
 
-本日志库主要实现了**日期文件夹滚动日志**和**全局日志管理器**, 支持C++11标准, 依赖于[spdlog](https://github.com/gabime/spdlog) 和 [filesystem](https://github.com/gulrak/filesystem).
+本日志库主要实现了**日期文件夹滚动日志**和**全局日志管理器**, 支持C++11标准, 依赖于 [spdlog](https://github.com/gabime/spdlog) 和 [filesystem](https://github.com/gulrak/filesystem).
 
 ### 实现效果
 
@@ -39,11 +39,12 @@ root@ubuntu:/mlog/build_output/bin# tree
 
 **全局日志管理器**功能:
 
-- 单例风格：禁止实例化和拷贝，只提供静态接口
+- 单例风格：禁止实例化和拷贝以及移动，只提供静态接口
 - 每个模块可获取独立的 logger
 - 支持文件日志和控制台日志（可在内部配置不同 sink）
 - 支持设置全局日志级别，影响所有已创建的 logger
 - 可以管理spdlog提供的`spdlog::logger`
+- 线程安全
 
 ### 使用方式:
 
