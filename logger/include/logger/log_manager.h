@@ -68,6 +68,22 @@ class LogManager
   static void set_log_max_files(std::size_t count);
 
   /**
+   * @brief 设置日志文件的滚动策略
+   *
+   * 用于指定所有文件日志（file sink）的滚动大小和文件数量.
+   *
+   * 行为说明:
+   * - 该策略会影响后续创建的所有 logger 的文件日志行为
+   * - 若在 logger 创建之后调用, 仅影响之后新创建的 logger
+   * - 超过该大小时会进行日志滚动（rotating）
+   * - 超过该数量时会删除最早的日志文件
+   *
+   * @param max_size 单个日志文件最大大小（字节数）
+   * @param max_files 最大日志文件数量
+   */
+  static void set_log_rotation(std::size_t log_max_size, std::size_t log_max_files);
+
+  /**
    * @brief 获取指定模块的 logger
    *
    * 如果该模块的 logger 尚未创建, 则会自动创建一个新的 logger,

@@ -160,6 +160,12 @@ void LogManager::set_log_max_files(std::size_t count)
   if (count > 0) max_files() = count;
 }
 
+void LogManager::set_log_rotation(std::size_t log_max_size, std::size_t log_max_files)
+{
+  set_log_max_size(log_max_size);
+  set_log_max_files(log_max_files);
+}
+
 void LogManager::flush_all()
 {
   auto &loggers = logger_map();
