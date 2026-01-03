@@ -34,13 +34,14 @@ spdlog::level::level_enum &get_default_stdout_level()
   static spdlog::level::level_enum level = spdlog::level::warn;
   return level;
 }
-}  // namespace
 
-std::string LogManager::s_save_path = "./logs";
-void LogManager::set_log_save_path(const std::string &path)
+std::string &get_save_path()
 {
-  s_save_path = path;
+  static std::string path = "./logs";
+  return path;
 }
+
+}  // namespace
 
 std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module)
 {
@@ -60,7 +61,8 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
   if (it != loggers.end()) return it->second;
 
   // === 文件 Sink（每天一个文件夹）===
-  auto file_sink = std::make_shared<date_folder_rotating_sink_mt>(s_save_path, module + ".log", 100 * 1024 * 1024, 10);
+  auto file_sink =
+    std::make_shared<date_folder_rotating_sink_mt>(get_save_path(), module + ".log", 100 * 1024 * 1024, 10);
   file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
   file_sink->set_level(get_default_file_level());
 
@@ -128,6 +130,11 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
       pair.second->sinks()[1]->set_level(level);  // 第二个 sink 是控制台 sink
     }
   }
+}
+
+void LogManager::set_log_save_path(const std::string &path)
+{
+  get_save_path() = path;
 }
 
 void LogManager::flush_all()
