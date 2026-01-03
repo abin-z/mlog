@@ -40,6 +40,34 @@ class LogManager
   static void set_log_save_path(const std::string &path);
 
   /**
+   * @brief 设置日志文件的最大大小（字节数）
+   *
+   * 用于指定所有文件日志（file sink）的单个日志文件最大大小.
+   *
+   * 行为说明:
+   * - 该大小会影响后续创建的所有 logger 的文件日志行为
+   * - 若在 logger 创建之后调用, 仅影响之后新创建的 logger
+   * - 超过该大小时会进行日志滚动（rotating）
+   *
+   * @param size 单个日志文件最大大小（字节数）
+   */
+  static void set_log_max_size(std::size_t size);
+
+  /**
+   * @brief 设置日志文件的最大数量
+   *
+   * 用于指定所有文件日志（file sink）的最大日志文件数量.
+   *
+   * 行为说明:
+   * - 该数量会影响后续创建的所有 logger 的文件日志行为
+   * - 若在 logger 创建之后调用, 仅影响之后新创建的 logger
+   * - 超过该数量时会删除最早的日志文件
+   *
+   * @param count 最大日志文件数量
+   */
+  static void set_log_max_files(std::size_t count);
+
+  /**
    * @brief 获取指定模块的 logger
    *
    * 如果该模块的 logger 尚未创建, 则会自动创建一个新的 logger,

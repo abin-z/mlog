@@ -150,6 +150,16 @@ void LogManager::set_log_save_path(const std::string &path)
   get_save_path() = path;
 }
 
+void LogManager::set_log_max_size(std::size_t size)
+{
+  if (size > 0) get_max_size() = size;
+}
+
+void LogManager::set_log_max_files(std::size_t count)
+{
+  if (count > 0) get_max_files() = count;
+}
+
 void LogManager::flush_all()
 {
   auto &loggers = get_logger_map();
