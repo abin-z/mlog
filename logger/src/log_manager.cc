@@ -12,43 +12,43 @@
 namespace
 {
 // 局部静态资源
-std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> &get_logger_map()
+std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> &logger_map()
 {
   static std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> map;
   return map;
 }
 
-std::mutex &get_logger_mutex()
+std::mutex &logger_mutex()
 {
   static std::mutex mtx;
   return mtx;
 }
 
-spdlog::level::level_enum &get_default_file_level()
+spdlog::level::level_enum &default_file_level()
 {
   static spdlog::level::level_enum level = spdlog::level::info;
   return level;
 }
 
-spdlog::level::level_enum &get_default_stdout_level()
+spdlog::level::level_enum &default_stdout_level()
 {
   static spdlog::level::level_enum level = spdlog::level::warn;
   return level;
 }
 
-std::string &get_save_path()
+std::string &save_path()
 {
   static std::string path = "./logs";
   return path;
 }
 
-std::size_t &get_max_size()
+std::size_t &max_size()
 {
   static std::size_t size = 100 * 1024 * 1024;  // 默认 100MB
   return size;
 }
 
-std::size_t &get_max_files()
+std::size_t &max_files()
 {
   static std::size_t count = 10;  // 默认 10 个文件
   return count;
@@ -58,8 +58,8 @@ std::size_t &get_max_files()
 
 std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module)
 {
-  auto &loggers = get_logger_map();
-  auto &mtx = get_logger_mutex();
+  auto &loggers = logger_map();
+  auto &mtx = logger_mutex();
 
   // 快速路径：短锁查询
   {
@@ -75,14 +75,14 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
 
   // === 文件 Sink（每天一个文件夹）===
   auto file_sink =
-    std::make_shared<date_folder_rotating_sink_mt>(get_save_path(), module + ".log", get_max_size(), get_max_files());
+    std::make_shared<date_folder_rotating_sink_mt>(save_path(), module + ".log", max_size(), max_files());
   file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-  file_sink->set_level(get_default_file_level());
+  file_sink->set_level(default_file_level());
 
   // === 控制台 Sink（带颜色）===
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%n] %v");
-  console_sink->set_level(get_default_stdout_level());
+  console_sink->set_level(default_stdout_level());
 
   // === 创建 logger（同时绑定多个 sink）===
   std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};  // 顺序不能变, 文件 sink 在前
@@ -97,8 +97,8 @@ bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
 {
   if (!logger) return false;
 
-  auto &loggers = get_logger_map();
-  auto &mtx = get_logger_mutex();
+  auto &loggers = logger_map();
+  auto &mtx = logger_mutex();
 
   std::lock_guard<std::mutex> lock(mtx);
   auto it = loggers.find(logger->name());
@@ -115,9 +115,9 @@ bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
 
 void LogManager::set_file_global_level(spdlog::level::level_enum level)
 {
-  auto &loggers = get_logger_map();
-  auto &mtx = get_logger_mutex();
-  get_default_file_level() = level;
+  auto &loggers = logger_map();
+  auto &mtx = logger_mutex();
+  default_file_level() = level;
 
   std::lock_guard<std::mutex> lock(mtx);
   for (auto &pair : loggers)
@@ -131,9 +131,9 @@ void LogManager::set_file_global_level(spdlog::level::level_enum level)
 
 void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 {
-  auto &loggers = get_logger_map();
-  auto &mtx = get_logger_mutex();
-  get_default_stdout_level() = level;
+  auto &loggers = logger_map();
+  auto &mtx = logger_mutex();
+  default_stdout_level() = level;
 
   std::lock_guard<std::mutex> lock(mtx);
   for (auto &pair : loggers)
@@ -147,23 +147,23 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 
 void LogManager::set_log_save_path(const std::string &path)
 {
-  get_save_path() = path;
+  save_path() = path;
 }
 
 void LogManager::set_log_max_size(std::size_t size)
 {
-  if (size > 0) get_max_size() = size;
+  if (size > 0) max_size() = size;
 }
 
 void LogManager::set_log_max_files(std::size_t count)
 {
-  if (count > 0) get_max_files() = count;
+  if (count > 0) max_files() = count;
 }
 
 void LogManager::flush_all()
 {
-  auto &loggers = get_logger_map();
-  auto &mtx = get_logger_mutex();
+  auto &loggers = logger_map();
+  auto &mtx = logger_mutex();
 
   std::vector<std::shared_ptr<spdlog::logger>> all_loggers;
   {
