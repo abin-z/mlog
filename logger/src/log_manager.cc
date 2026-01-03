@@ -2,6 +2,7 @@
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include <cstddef>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -41,6 +42,18 @@ std::string &get_save_path()
   return path;
 }
 
+std::size_t &get_max_size()
+{
+  static std::size_t size = 100 * 1024 * 1024;  // 默认 100MB
+  return size;
+}
+
+std::size_t &get_max_files()
+{
+  static std::size_t count = 10;  // 默认 10 个文件
+  return count;
+}
+
 }  // namespace
 
 std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module)
@@ -62,7 +75,7 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
 
   // === 文件 Sink（每天一个文件夹）===
   auto file_sink =
-    std::make_shared<date_folder_rotating_sink_mt>(get_save_path(), module + ".log", 100 * 1024 * 1024, 10);
+    std::make_shared<date_folder_rotating_sink_mt>(get_save_path(), module + ".log", get_max_size(), get_max_files());
   file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
   file_sink->set_level(get_default_file_level());
 
