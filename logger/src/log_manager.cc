@@ -99,16 +99,17 @@ bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
 
   auto &loggers = logger_map();
   auto &mtx = logger_mutex();
+  auto name = logger->name();
 
   std::lock_guard<std::mutex> lock(mtx);
-  auto it = loggers.find(logger->name());
+  auto it = loggers.find(name);
   if (it != loggers.end()) return false;  // 已存在同名 logger
 
-  loggers[logger->name()] = logger;
+  loggers[name] = std::move(logger);
   // 先检查 spdlog 内部是否已有同名 logger
-  if (!spdlog::get(logger->name()))
+  if (!spdlog::get(name))
   {
-    spdlog::register_logger(logger);
+    spdlog::register_logger(loggers[name]);
   }
   return true;
 }

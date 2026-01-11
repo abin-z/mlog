@@ -69,7 +69,7 @@ int main()
   }
   catch (const spdlog::spdlog_ex &ex)
   {
-    std::cerr << "Log 初始化失败: " << ex.what() << std::endl;
+    std::cerr << "Log 初始化失败: " << ex.what() << '\n';
   }
 
   return 0;
