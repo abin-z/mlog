@@ -54,8 +54,8 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
    * @param max_size 单个日志文件最大字节数，超过则滚动，默认 100MB
    * @param max_files 最大文件数量，超过则删除最早文件，默认 10
    */
-  date_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
-                            size_t max_size = 100 * 1024 * 1024, size_t max_files = 10) :
+  explicit date_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
+                                     size_t max_size = 100 * 1024 * 1024, size_t max_files = 10) :
     base_path_(std::move(base_path)), log_filename_(std::move(log_filename)), max_size_(max_size), max_files_(max_files)
   {
     roll_to_today();
@@ -137,7 +137,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
   static std::string date_str(const std::chrono::system_clock::time_point &tp)
   {
     std::time_t t = std::chrono::system_clock::to_time_t(tp);
-    std::tm tm;
+    std::tm tm{};
 #ifdef _WIN32
     localtime_s(&tm, &t);
 #else
