@@ -168,7 +168,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
 
     // 计算下次切换时间（次日 00:00:00）
     std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm;
+    std::tm tm{};
 #ifdef _WIN32
     localtime_s(&tm, &t);
 #else
