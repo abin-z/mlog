@@ -11,14 +11,14 @@
 #include <type_traits>
 
 #if defined(__cpp_lib_filesystem) && __cpp_lib_filesystem >= 201703L
-   #include <filesystem>
-   namespace fs = std::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 #elif __has_include(<filesystem>) && defined(__cplusplus) && __cplusplus >= 201703L
-   #include <filesystem>
-   namespace fs = std::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 #else
-   #include <ghc/filesystem.hpp>
-   namespace fs = ghc::filesystem;
+#include <ghc/filesystem.hpp>
+namespace fs = ghc::filesystem;
 #endif
 
 /**
@@ -167,6 +167,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     // 继承已有 formatter（如果有）
     if (this->formatter_) new_sink->set_formatter(this->formatter_->clone());
 
+    if (internal_sink_) internal_sink_->flush();
     internal_sink_ = std::move(new_sink);
 
     // 计算下次切换时间（次日 00:00:00）
