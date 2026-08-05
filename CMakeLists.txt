@@ -12,8 +12,8 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
         "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
 endif()
 
-# 设置C++标准版本为C++17，并确保严格要求此标准，不使用扩展功能
-set(CMAKE_CXX_STANDARD 17)
+# 设置C++标准版本为C++11，并确保严格要求此标准，不使用扩展功能
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -48,6 +48,7 @@ endif()
 if(CMAKE_CXX_STANDARD LESS 17)
     add_subdirectory(3rd/filesystem)
 endif()
+add_subdirectory(3rd/date)
 add_subdirectory(3rd/spdlog)
 
 add_subdirectory(examples)

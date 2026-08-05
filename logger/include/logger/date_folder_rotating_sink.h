@@ -21,6 +21,18 @@ namespace fs = std::filesystem;
 namespace fs = ghc::filesystem;
 #endif
 
+#if defined(__has_include) && __has_include(<date/date.h>)
+#if defined(__cplusplus) && __cplusplus < 201703L
+#ifdef HAS_STRING_VIEW
+#undef HAS_STRING_VIEW
+#endif
+#define HAS_STRING_VIEW 0
+#endif
+#include <date/date.h>
+#else
+#error "date/date.h is required for optimized date handling"
+#endif
+
 /**
  * @brief 日期文件夹滚动日志 Sink
  *
@@ -141,20 +153,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
   /** 获取时间对应的日期字符串，例如 "2025-10-28" */
   static std::string date_str(const std::chrono::system_clock::time_point &tp)
   {
-    std::time_t t = std::chrono::system_clock::to_time_t(tp);
-    std::tm tm{};
-#ifdef _WIN32
-    localtime_s(&tm, &t);
-#else
-    localtime_r(&t, &tm);
-#endif
-    char buf[16];
-    const std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d", &tm);
-    if (len == 0)
-    {
-      return {};
-    }
-    return {buf, len};
+    return date::format("%F", date::floor<date::days>(tp));
   }
   /** 滚动到今天，创建对应日期文件夹和日志文件 */
   void roll_to_today()
@@ -169,7 +168,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     current_log_path_ = full_path;
 
     // 新建 rotating sink（选择 mt 或 st）
-    auto new_sink = spdlog::details::make_unique<internal_sink_t>(full_path, max_size_, max_files_, false);
+    auto new_sink = spdlog::details::make_unique<internal_sink_t>(full_path.string(), max_size_, max_files_, false);
 
     // 继承已有 formatter（如果有）
     if (this->formatter_) new_sink->set_formatter(this->formatter_->clone());
@@ -178,19 +177,9 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     internal_sink_ = std::move(new_sink);
 
     // 计算下次切换时间（次日 00:00:00）
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm{};
-#ifdef _WIN32
-    localtime_s(&tm, &t);
-#else
-    localtime_r(&t, &tm);
-#endif
-    tm.tm_hour = 0;
-    tm.tm_min = 0;
-    tm.tm_sec = 0;
-    tm.tm_mday += 1;
-    std::time_t next_day = std::mktime(&tm);
-    next_roll_time_ = std::chrono::system_clock::from_time_t(next_day);
+    const auto today = date::floor<date::days>(now);
+    const auto tomorrow = today + date::days{1};
+    next_roll_time_ = std::chrono::system_clock::time_point{tomorrow.time_since_epoch()};
   }
 };
 
