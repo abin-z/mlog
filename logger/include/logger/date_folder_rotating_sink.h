@@ -22,6 +22,7 @@ namespace fs = ghc::filesystem;
 #endif
 
 #include <date/date.h>
+#include <date/tz.h>
 
 /**
  * @brief 日期文件夹滚动日志 Sink
@@ -141,17 +142,24 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
   std::unique_ptr<internal_sink_t> internal_sink_;
   std::chrono::system_clock::time_point next_roll_time_;
   /** 获取时间对应的日期字符串，例如 "2025-10-28" */
-  static std::string date_str(const std::chrono::system_clock::time_point &tp)
+  template <typename Duration>
+  static std::string date_str(const date::local_time<Duration> &local_time)
   {
-    return date::format("%F", date::floor<date::days>(tp));
+    return date::format("%F", date::floor<date::days>(local_time));
   }
+
   /** 滚动到今天，创建对应日期文件夹和日志文件 */
   void roll_to_today()
   {
     auto now = std::chrono::system_clock::now();
 
+    // 获取当前时区，并转换成本地时间
+    const auto *zone = date::current_zone();
+    auto z = date::make_zoned(zone, now);
+    auto local_time = z.get_local_time();
+
     // 生成日期目录
-    auto folder = fs::path(base_path_) / date_str(now);
+    auto folder = fs::path(base_path_) / date_str(local_time);
     fs::create_directories(folder);
 
     auto full_path = folder / log_filename_;
@@ -166,10 +174,13 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     if (internal_sink_) internal_sink_->flush();
     internal_sink_ = std::move(new_sink);
 
-    // 计算下次切换时间（次日 00:00:00）
-    const auto today = date::floor<date::days>(now);
-    const auto tomorrow = today + date::days{1};
-    next_roll_time_ = std::chrono::system_clock::time_point{tomorrow.time_since_epoch()};
+    // 计算下次切换时间：本地时区次日 00:00
+    const auto local_today = date::floor<date::days>(local_time);
+    const auto local_tomorrow = local_today + date::days{1};
+    // 本地时间转换回 system_clock 时间
+    date::zoned_time<std::chrono::system_clock::duration> zt{zone, local_tomorrow};
+
+    next_roll_time_ = zt.get_sys_time();
   }
 };
 

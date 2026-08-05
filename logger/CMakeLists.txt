@@ -18,6 +18,7 @@ target_include_directories(${tgt_name}
 target_compile_features(${tgt_name} PUBLIC cxx_std_11)
 target_link_libraries(${tgt_name} PUBLIC spdlog::spdlog)
 target_link_libraries(${tgt_name} PUBLIC date::date)
+target_link_libraries(${tgt_name} PUBLIC date::date-tz)
 # C++17 and above can use std::filesystem directly
 if (CMAKE_CXX_STANDARD LESS 17)
     message(STATUS "Using ghc::filesystem (C++ standard < 17)")
