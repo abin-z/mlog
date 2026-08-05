@@ -143,8 +143,12 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     localtime_r(&t, &tm);
 #endif
     char buf[16];
-    std::strftime(buf, sizeof(buf), "%Y-%m-%d", &tm);
-    return buf;
+    const std::size_t len = std::strftime(buf, sizeof(buf), "%Y-%m-%d", &tm);
+    if (len == 0)
+    {
+      return {};
+    }
+    return {buf, len};
   }
   /** 滚动到今天，创建对应日期文件夹和日志文件 */
   void roll_to_today()
