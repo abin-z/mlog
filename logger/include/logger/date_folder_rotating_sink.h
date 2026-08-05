@@ -83,6 +83,11 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     if (internal_sink_) return internal_sink_->get_max_files();
     return max_files_;
   }
+  /** 获取当前正在写入的日志文件路径 */
+  fs::path current_log_path() const noexcept
+  {
+    return current_log_path_;
+  }
 
  protected:
   // 必须实现：写日志
@@ -130,6 +135,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     typename std::conditional<std::is_same<Mutex, std::mutex>::value, spdlog::sinks::rotating_file_sink_mt,
                               spdlog::sinks::rotating_file_sink_st>::type;
 
+  fs::path current_log_path_;
   std::unique_ptr<internal_sink_t> internal_sink_;
   std::chrono::system_clock::time_point next_roll_time_;
   /** 获取时间对应的日期字符串，例如 "2025-10-28" */
@@ -160,6 +166,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     fs::create_directories(folder);
 
     auto full_path = folder / log_filename_;
+    current_log_path_ = full_path;
 
     // 新建 rotating sink（选择 mt 或 st）
     auto new_sink = spdlog::details::make_unique<internal_sink_t>(full_path, max_size_, max_files_, false);
