@@ -21,17 +21,7 @@ namespace fs = std::filesystem;
 namespace fs = ghc::filesystem;
 #endif
 
-#if defined(__has_include) && __has_include(<date/date.h>)
-#if defined(__cplusplus) && __cplusplus < 201703L
-#ifdef HAS_STRING_VIEW
-#undef HAS_STRING_VIEW
-#endif
-#define HAS_STRING_VIEW 0
-#endif
 #include <date/date.h>
-#else
-#error "date/date.h is required for optimized date handling"
-#endif
 
 /**
  * @brief 日期文件夹滚动日志 Sink
