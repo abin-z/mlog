@@ -31,6 +31,9 @@ int main()
     // LogManager::setStdoutGlobalLevel(spdlog::level::info);  // 设置控制台日志级别为 info
     // LogManager::setFileGlobalLevel(spdlog::level::warn);    // 设置文件日志级别为 warn
 
+    logger->info("C++ 版本: {}", __cplusplus);
+    logger2->info("C++ 版本: {}", __cplusplus);
+
     // 打印不同级别日志
     logger->trace("这是一条 trace 日志");  // 不会输出，因为 level = info
     logger->debug("这是一条 debug 日志");  // 不会输出

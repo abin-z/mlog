@@ -10,15 +10,15 @@
 #include <mutex>
 #include <type_traits>
 
-#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
-#if __has_include(<filesystem>)
-#include <filesystem>
-namespace fs = std::filesystem;
-#endif
-#endif
-#ifndef fs
-#include <ghc/filesystem.hpp>
-namespace fs = ghc::filesystem;
+#if defined(__cpp_lib_filesystem) && __cpp_lib_filesystem >= 201703L
+   #include <filesystem>
+   namespace fs = std::filesystem;
+#elif __has_include(<filesystem>) && defined(__cplusplus) && __cplusplus >= 201703L
+   #include <filesystem>
+   namespace fs = std::filesystem;
+#else
+   #include <ghc/filesystem.hpp>
+   namespace fs = ghc::filesystem;
 #endif
 
 /**
