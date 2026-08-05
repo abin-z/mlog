@@ -44,8 +44,7 @@ namespace fs = ghc::filesystem;
  * @tparam Mutex 日志线程安全策略，std::mutex 表示多线程安全，spdlog::details::null_mutex 表示单线程
  */
 template <typename Mutex>
-class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex>
-{
+class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
  public:
   /**
    * @brief 构造函数
