@@ -72,13 +72,13 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     if (internal_sink_) internal_sink_->set_max_files(max_files_);
   }
   /** 获取单个日志文件最大大小 */
-  std::size_t get_max_size()
+  std::size_t get_max_size() const noexcept
   {
     if (internal_sink_) return internal_sink_->get_max_size();
     return max_size_;
   }
   /** 获取最大日志文件数量 */
-  std::size_t get_max_files()
+  std::size_t get_max_files() const noexcept
   {
     if (internal_sink_) return internal_sink_->get_max_files();
     return max_files_;
@@ -159,7 +159,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     auto folder = fs::path(base_path_) / date_str(now);
     fs::create_directories(folder);
 
-    auto full_path = (folder / log_filename_).string();
+    auto full_path = folder / log_filename_;
 
     // 新建 rotating sink（选择 mt 或 st）
     auto new_sink = spdlog::details::make_unique<internal_sink_t>(full_path, max_size_, max_files_, false);
