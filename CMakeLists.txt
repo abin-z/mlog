@@ -48,8 +48,6 @@ endif()
 if(CMAKE_CXX_STANDARD LESS 17)
     add_subdirectory(3rd/filesystem)
 endif()
-set(BUILD_TZ_LIB ON CACHE BOOL "" FORCE)
-add_subdirectory(3rd/date)
 add_subdirectory(3rd/spdlog)
 
 add_subdirectory(examples)
