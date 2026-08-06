@@ -4,6 +4,8 @@
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <ctime>
 #include <memory>
@@ -57,8 +59,13 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
    * @param max_files 最大文件数量，超过则删除最早文件，默认 10
    */
   explicit date_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
-                                     size_t max_size = 100 * 1024 * 1024, size_t max_files = 10) :
-    base_path_(std::move(base_path)), log_filename_(std::move(log_filename)), max_size_(max_size), max_files_(max_files)
+                                     size_t max_size = 100 * 1024 * 1024, size_t max_files = 10,
+                                     int retention_days = 30) :
+    base_path_(std::move(base_path)),
+    log_filename_(std::move(log_filename)),
+    max_size_(max_size),
+    max_files_(max_files),
+    retention_days_(date::days{std::max(0, retention_days)})
   {
     roll_to_today();
   }
@@ -85,6 +92,17 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
   {
     if (internal_sink_) return internal_sink_->get_max_files();
     return max_files_;
+  }
+  /** 设置保留的最近天数 */
+  void set_retention_days(int retention_days)
+  {
+    if (retention_days < 0) retention_days = 0;
+    retention_days_ = date::days{retention_days};
+  }
+  /** 获取保留的最近天数 */
+  int get_retention_days() const noexcept
+  {
+    return static_cast<int>(retention_days_.count());
   }
   /** 获取当前正在写入的日志文件路径 */
   fs::path current_log_path() const noexcept
@@ -128,10 +146,11 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
   }
 
  private:
-  std::string base_path_;     ///< 基础日志目录
-  std::string log_filename_;  ///< 日志文件名
-  size_t max_size_;           ///< 单个文件最大字节数
-  size_t max_files_;          ///< 最大文件数量
+  std::string base_path_;      ///< 基础日志目录
+  std::string log_filename_;   ///< 日志文件名
+  size_t max_size_;            ///< 单个文件最大字节数
+  size_t max_files_;           ///< 最大文件数量
+  date::days retention_days_;  ///< 保留最近多少天的历史日志目录
 
   /** 内部实际使用的 rotating sink 类型（根据 Mutex 选择 mt 或 st） */
   using internal_sink_t =
@@ -146,6 +165,59 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
   static std::string date_str(const date::local_time<Duration> &local_time)
   {
     return date::format("%F", date::floor<date::days>(local_time));
+  }
+
+  /** 判断是否为 YYYY-MM-DD 格式的日期目录 */
+  static bool is_date_dir_name(const std::string &name) noexcept
+  {
+    return name.size() == 10 && (std::isdigit(static_cast<unsigned char>(name[0])) != 0) &&
+           (std::isdigit(static_cast<unsigned char>(name[1])) != 0) &&
+           (std::isdigit(static_cast<unsigned char>(name[2])) != 0) &&
+           (std::isdigit(static_cast<unsigned char>(name[3])) != 0) && name[4] == '-' &&
+           (std::isdigit(static_cast<unsigned char>(name[5])) != 0) &&
+           (std::isdigit(static_cast<unsigned char>(name[6])) != 0) && name[7] == '-' &&
+           (std::isdigit(static_cast<unsigned char>(name[8])) != 0) &&
+           (std::isdigit(static_cast<unsigned char>(name[9])) != 0);
+  }
+  /** 删除超过保留天数的旧日期目录 */
+  void clean_old_directories(const date::year_month_day &current_local_day)
+  {
+    if (!fs::exists(base_path_))
+    {
+      return;
+    }
+
+    // retention_days_:
+    //   0  -> 仅保留当天日志
+    //   1  -> 保留最近1天历史 + 当天日志
+    //   30 -> 保留最近30天历史 + 当天日志
+    const std::string cutoff = date::format("%F", date::sys_days{current_local_day} - retention_days_);
+
+    for (fs::directory_iterator it(base_path_), end; it != end; ++it)
+    {
+      if (!it->is_directory())
+      {
+        continue;
+      }
+
+      const std::string dir_name = it->path().filename().string();
+
+      // 仅处理 YYYY-MM-DD 格式目录
+      if (!is_date_dir_name(dir_name))
+      {
+        continue;
+      }
+
+      // YYYY-MM-DD 字典序即日期顺序
+      if (dir_name < cutoff)
+      {
+        std::error_code ec;
+        fs::remove_all(it->path(), ec);
+
+        // TODO: 删除失败可记录日志
+        // if (ec) { ... }
+      }
+    }
   }
 
   /** 滚动到今天，创建对应日期文件夹和日志文件 */
@@ -173,6 +245,10 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
 
     if (internal_sink_) internal_sink_->flush();
     internal_sink_ = std::move(new_sink);
+
+    // 清理早于保留窗口的旧日期目录
+    const auto current_local_day = date::year_month_day{date::floor<date::days>(local_time)};
+    clean_old_directories(current_local_day);
 
     // 计算下次切换时间：本地时区次日 00:00
     const auto local_today = date::floor<date::days>(local_time);
