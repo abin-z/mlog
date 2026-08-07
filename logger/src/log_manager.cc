@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "logger/date_folder_rotating_sink.h"
+#include "logger/daily_folder_rotating_sink.h"
 
 namespace
 {

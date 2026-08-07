@@ -59,7 +59,7 @@ root@ubuntu:/mlog/build_output/bin# tree
 4. 然后在源文件中include头文件即可使用:
 
    ```cpp
-   #include "logger/date_folder_rotating_sink.h"
+   #include "logger/daily_folder_rotating_sink.h"
    #include "logger/log_manager.h"
    ```
 
