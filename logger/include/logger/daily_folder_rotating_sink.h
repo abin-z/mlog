@@ -292,7 +292,6 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
     const std::tm tm = local_tm();
 
     // 创建日期目录
-
     char date_buffer[16];
 
     const int len =
