@@ -206,10 +206,13 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
    */
   void clean_old_directories(const std::tm &current_tm)
   {
-    if (!fs::exists(base_path_))
+    std::error_code eec;
+    if (!fs::exists(base_path_, eec) || eec)
     {
+      report_error("Base path does not exist or error: " + eec.message() + ", skipping cleanup");
       return;
     }
+
     // 计算截止时间
     std::tm cutoff_tm = current_tm;
     cutoff_tm.tm_hour = 0;
@@ -236,33 +239,51 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     {
       throw spdlog::spdlog_ex("Failed to format cutoff date");
     }
-
-    for (fs::directory_iterator it(base_path_), end; it != end; ++it)
+    std::error_code diec;
+    for (fs::directory_iterator it(base_path_, diec), end; it != end && !diec; ++it)
     {
       if (!it->is_directory())
       {
         continue;
       }
       const std::string dir_name = it->path().filename().string();
-      /*
-       * 非日期目录忽略
-       */
+
+      // 非日期目录忽略
       if (!is_date_dir_name(dir_name))
       {
         continue;
       }
-      /*
-       * YYYY-MM-DD 可以直接字符串比较
-       */
+
+      // YYYY-MM-DD 可以直接字符串比较, 如果目录名小于 cutoff_date，则删除
       if (dir_name < cutoff_date)
       {
         std::error_code ec;
         fs::remove_all(it->path(), ec);
-        /*
-         * 删除失败这里可以增加日志
-         */
+        if (ec)
+        {
+          report_error("Failed to remove old log directory: " + it->path().string() + ", error: " + ec.message());
+        }
       }
     }
+    if (diec)
+    {
+      report_error("Failed to iterate log directory");
+    }
+  }
+
+  static void ensure_directory(const fs::path &path)
+  {
+    std::error_code ec;
+    fs::create_directories(path, ec);
+    if (ec)
+    {
+      throw spdlog::spdlog_ex("Failed to create directory: " + path.string() + ", error: " + ec.message());
+    }
+  }
+
+  static void report_error(const std::string &msg) noexcept
+  {
+    (void)std::fprintf(stderr, "[date_folder_rotating_sink] %s\n", msg.c_str());
   }
 
   /** 滚动到今天，创建对应日期文件夹和日志文件 */
@@ -283,7 +304,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
     }
     const fs::path folder = fs::path(base_path_) / date_buffer;
 
-    fs::create_directories(folder);
+    ensure_directory(folder);
 
     const fs::path log_path = folder / log_filename_;
 
