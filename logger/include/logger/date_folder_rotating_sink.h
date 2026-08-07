@@ -39,7 +39,7 @@ namespace fs = ghc::filesystem;
  *
  * 使用示例：
  * @code
- * auto sink = std::make_shared<date_folder_rotating_sink_mt>("./logs", "app.log", 100*1024*1024, 10);
+ * auto sink = std::make_shared<daily_folder_rotating_sink_mt>("./logs", "app.log", 100*1024*1024, 10);
  * sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
  * logger->sinks().push_back(sink);
  * @endcode
@@ -47,7 +47,7 @@ namespace fs = ghc::filesystem;
  * @tparam Mutex 日志线程安全策略，std::mutex 表示多线程安全，spdlog::details::null_mutex 表示单线程
  */
 template <typename Mutex>
-class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
+class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
  public:
   /**
    * @brief 构造函数
@@ -56,7 +56,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
    * @param max_size 单个日志文件最大字节数，超过则滚动，默认 100MB
    * @param max_files 最大文件数量，超过则删除最早文件，默认 10
    */
-  explicit date_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
+  explicit daily_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
                                      size_t max_size = 100 * 1024 * 1024, size_t max_files = 10,
                                      int retention_days = 30) :
     base_path_(std::move(base_path)),
@@ -283,7 +283,7 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
 
   static void report_error(const std::string &msg) noexcept
   {
-    (void)std::fprintf(stderr, "[date_folder_rotating_sink] %s\n", msg.c_str());
+    (void)std::fprintf(stderr, "[daily_folder_rotating_sink] %s\n", msg.c_str());
   }
 
   /** 滚动到今天，创建对应日期文件夹和日志文件 */
@@ -338,5 +338,5 @@ class date_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
 };
 
 // 便捷别名
-using date_folder_rotating_sink_mt = date_folder_rotating_sink<std::mutex>;
-using date_folder_rotating_sink_st = date_folder_rotating_sink<spdlog::details::null_mutex>;
+using daily_folder_rotating_sink_mt = daily_folder_rotating_sink<std::mutex>;
+using daily_folder_rotating_sink_st = daily_folder_rotating_sink<spdlog::details::null_mutex>;

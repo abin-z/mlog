@@ -54,6 +54,12 @@ std::size_t &max_files()
   return count;
 }
 
+std::size_t &retention_days()
+{
+  static std::size_t days = 30;  // 默认保留最近 30 天的日志目录
+  return days;
+}
+
 }  // namespace
 
 std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module)
@@ -74,8 +80,8 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
   if (it != loggers.end()) return it->second;
 
   // === 文件 Sink（每天一个文件夹）===
-  auto file_sink =
-    std::make_shared<date_folder_rotating_sink_mt>(save_path(), module + ".log", max_size(), max_files());
+  auto file_sink = std::make_shared<daily_folder_rotating_sink_mt>(save_path(), module + ".log", max_size(),
+                                                                   max_files(), retention_days());
   file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
   file_sink->set_level(default_file_level());
 
@@ -118,9 +124,9 @@ void LogManager::set_file_global_level(spdlog::level::level_enum level)
 {
   auto &loggers = logger_map();
   auto &mtx = logger_mutex();
-  default_file_level() = level;
-
   std::lock_guard<std::mutex> lock(mtx);
+
+  default_file_level() = level;
   for (auto &pair : loggers)
   {
     if (pair.second->sinks().size() > 0)
@@ -134,9 +140,9 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 {
   auto &loggers = logger_map();
   auto &mtx = logger_mutex();
-  default_stdout_level() = level;
-
   std::lock_guard<std::mutex> lock(mtx);
+
+  default_stdout_level() = level;
   for (auto &pair : loggers)
   {
     if (pair.second->sinks().size() > 1)
@@ -148,16 +154,19 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 
 void LogManager::set_log_save_path(const std::string &path)
 {
+  std::lock_guard<std::mutex> lock(logger_mutex());
   save_path() = path;
 }
 
 void LogManager::set_log_max_size(std::size_t size)
 {
+  std::lock_guard<std::mutex> lock(logger_mutex());
   if (size > 0) max_size() = size;
 }
 
 void LogManager::set_log_max_files(std::size_t count)
 {
+  std::lock_guard<std::mutex> lock(logger_mutex());
   if (count > 0) max_files() = count;
 }
 
@@ -165,6 +174,12 @@ void LogManager::set_log_rotation(std::size_t log_max_size, std::size_t log_max_
 {
   set_log_max_size(log_max_size);
   set_log_max_files(log_max_files);
+}
+
+void LogManager::set_log_retention_days(std::size_t days)
+{
+  std::lock_guard<std::mutex> lock(logger_mutex());
+  retention_days() = days;
 }
 
 void LogManager::flush_all()

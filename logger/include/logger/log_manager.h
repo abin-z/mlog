@@ -85,6 +85,20 @@ class LogManager
   static void set_log_rotation(std::size_t log_max_size, std::size_t log_max_files);
 
   /**
+   * @brief 设置日志目录保留的最近天数
+   *
+   * 用于指定所有文件日志（file sink）的日志目录保留策略.
+   *
+   * 行为说明:
+   * - 该策略会影响后续创建的所有 logger 的文件日志行为
+   * - 若在 logger 创建之后调用, 仅影响之后新创建的 logger
+   * - 0 表示只保留今天的日志目录, 1 表示保留昨天和今天的日志目录, 30 表示保留最近 30 天和今天的日志目录
+   *
+   * @param days 保留的最近天数
+   */
+  static void set_log_retention_days(std::size_t days); 
+
+  /**
    * @brief 获取指定模块的 logger
    *
    * 如果该模块的 logger 尚未创建, 则会自动创建一个新的 logger,
