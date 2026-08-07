@@ -94,7 +94,7 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
   /** 设置保留的最近天数 */
   void set_retention_days(int retention_days)
   {
-    if (retention_days < 0) retention_days = 0;
+    retention_days = std::max(retention_days, 0);
     retention_days_ = retention_days;
   }
   /** 获取保留的最近天数 */
