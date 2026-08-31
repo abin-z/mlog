@@ -57,8 +57,8 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
    * @param max_files 最大文件数量，超过则删除最早文件，默认 10
    */
   explicit daily_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
-                                     size_t max_size = 100 * 1024 * 1024, size_t max_files = 10,
-                                     int retention_days = 30) :
+                                      size_t max_size = 100 * 1024 * 1024, size_t max_files = 10,
+                                      int retention_days = 30) :
     base_path_(std::move(base_path)),
     log_filename_(std::move(log_filename)),
     max_size_(max_size),
@@ -148,7 +148,7 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
   std::string log_filename_;  ///< 日志文件名
   size_t max_size_;           ///< 单个文件最大字节数
   size_t max_files_;          ///< 最大文件数量
-  int retention_days_;  // 保留最近多少天的日志目录, 0表示只保留今天, 1表示保留昨天+今天, 30表示保留最近30天+今天
+  int retention_days_;        // 保留最近多少天的日志目录, 0表示只保留今天, 1表示保留昨天+今天, 30表示保留最近30天+今天
 
   /** 内部实际使用的 rotating sink 类型（根据 Mutex 选择 mt 或 st） */
   using internal_sink_t =

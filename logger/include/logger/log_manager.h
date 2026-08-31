@@ -16,8 +16,7 @@
  * - 支持文件日志和控制台日志（可在内部配置不同 sink）
  * - 支持设置全局日志级别, 影响所有已创建的 logger
  */
-class LogManager
-{
+class LogManager {
  public:
   LogManager() = delete;                               ///< 禁止默认构造
   LogManager(const LogManager &) = delete;             ///< 禁止拷贝构造
@@ -96,7 +95,7 @@ class LogManager
    *
    * @param days 保留的最近天数
    */
-  static void set_log_retention_days(std::size_t days); 
+  static void set_log_retention_days(std::size_t days);
 
   /**
    * @brief 获取指定模块的 logger
