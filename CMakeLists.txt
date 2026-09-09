@@ -35,6 +35,8 @@ project(mlog
     DESCRIPTION "Modern logging library"
 )
 
+include(CTest)
+
 # 仅在 Linux/macOS 上启用 pthread
 if(UNIX)
     find_package(Threads REQUIRED)
@@ -52,3 +54,7 @@ add_subdirectory(3rd/spdlog)
 
 add_subdirectory(examples)
 add_subdirectory(logger)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

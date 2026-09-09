@@ -81,6 +81,15 @@ root@ubuntu:/mlog/build_output/bin# tree
 
    原有的 `set_log_save_path`、`set_log_rotation`、`set_log_retention_days` 等接口仍然可用。
 
+   单独调整某个模块的输出级别时，使用具名接口，不需要依赖 Sink 的排列顺序：
+
+   ```cpp
+   LogManager::set_file_level("module1", spdlog::level::debug);
+   LogManager::set_stdout_level("module1", spdlog::level::info);
+   ```
+
+   通过 `add_logger` 添加的外部 logger 只由 `LogManager` 管理生命周期和刷新；它的 Sink 配置仍由调用者负责。
+
 ### 独立使用日期文件夹滚动 Sink
 
 `daily_folder_rotating_sink` 是 header-only 组件，可以不使用 `LogManager`，直接通过自己的 options 创建：

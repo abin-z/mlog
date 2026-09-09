@@ -1,5 +1,6 @@
 #pragma once
 
+#include <spdlog/sinks/sink.h>
 #include <spdlog/spdlog.h>
 
 #include <cstddef>
@@ -42,7 +43,7 @@ class LogManager {
    * @brief 设置 LogManager 全局 options
    *
    * 保存路径、滚动策略和保留天数仅影响之后创建的 logger；
-   * 文件和控制台日志级别会同时更新所有已创建的 logger。
+   * 文件和控制台日志级别会同时更新 LogManager 自身创建的所有 logger。
    *
    * @param options 新的日志配置
    */
@@ -138,17 +139,41 @@ class LogManager {
   static std::shared_ptr<spdlog::logger> get_logger(const std::string &module);
 
   /**
+   * @brief 获取指定模块的文件 Sink
+   * @return 文件 Sink；模块不存在或外部 logger 未登记该角色时返回 nullptr
+   */
+  static spdlog::sink_ptr get_file_sink(const std::string &module);
+
+  /**
+   * @brief 获取指定模块的控制台 Sink
+   * @return 控制台 Sink；模块不存在或外部 logger 未登记该角色时返回 nullptr
+   */
+  static spdlog::sink_ptr get_stdout_sink(const std::string &module);
+
+  /**
+   * @brief 设置指定模块的文件日志级别
+   * @return 设置成功返回 true；模块不存在或没有文件 Sink 时返回 false
+   */
+  static bool set_file_level(const std::string &module, spdlog::level::level_enum level);
+
+  /**
+   * @brief 设置指定模块的控制台日志级别
+   * @return 设置成功返回 true；模块不存在或没有控制台 Sink 时返回 false
+   */
+  static bool set_stdout_level(const std::string &module, spdlog::level::level_enum level);
+
+  /**
    * @brief 将已有 logger 添加到 LogManager 管理（并注册到 spdlog 全局注册表）
    * @param logger 需要添加的 std::shared_ptr<spdlog::logger> 对象
    * @return 如果 logger 为空或已存在同名 logger 返回 false, 否则返回 true
-   * @note 添加后 LogManager 会接管管理该 logger 的生命周期
+   * @note 添加后 LogManager 会管理该 logger 的生命周期和刷新，但不会管理其 Sink
    */
   static bool add_logger(std::shared_ptr<spdlog::logger> logger);
 
   /**
    * @brief 设置文件日志全局级别
    *
-   * 会遍历所有已创建的 logger 并更新其文件 sink 的日志级别,
+   * 会遍历 LogManager 自身创建的 logger 并更新其文件 sink 的日志级别,
    * 同时新创建的 logger 也会继承该级别.
    *
    * @param level spdlog::level::level_enum 日志级别, 例如 spdlog::level::info
@@ -158,7 +183,7 @@ class LogManager {
   /**
    * @brief 设置控制台日志全局级别
    *
-   * 会遍历所有已创建的 logger 并更新其控制台 sink 的日志级别,
+   * 会遍历 LogManager 自身创建的 logger 并更新其控制台 sink 的日志级别,
    * 同时新创建的 logger 也会继承该级别.
    *
    * @param level spdlog::level::level_enum 日志级别, 例如 spdlog::level::warn

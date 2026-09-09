@@ -33,13 +33,14 @@ int main()
     std::cout << "日志测试程序开始运行1..." << '\n';
     logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] [%n] %v");
     // 注意logger和sink的pattern是分开的, logger会覆盖sink的pattern
-    logger->sinks()[0]->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
+    auto file_sink = LogManager::get_file_sink("module1");
+    if (file_sink) file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
     auto logger2 = LogManager::get_logger("module2");
     std::cout << "日志测试程序开始运行2..." << '\n';
-    logger2->set_level(spdlog::level::trace);              // logger2的日志级别设置为 trace, 这个会优先过滤
-    logger2->sinks()[0]->set_level(spdlog::level::trace);  // 设置 logger2 的文件 sink 日志级别为 trace
-    logger2->sinks()[1]->set_level(spdlog::level::info);   // 设置 logger2 的文件 sink 日志级别为 info
+    logger2->set_level(spdlog::level::trace);  // logger2的日志级别设置为 trace, 这个会优先过滤
+    LogManager::set_file_level("module2", spdlog::level::trace);
+    LogManager::set_stdout_level("module2", spdlog::level::info);
 
     logger->info("C++ 版本: {}", __cplusplus);
     logger2->info("C++ 版本: {}", __cplusplus);
