@@ -25,6 +25,8 @@ int main()
     options.max_size = 100 * 1024 * 1024;
     options.max_files = 10;
     options.retention_days = 30;
+    options.file_level = spdlog::level::info;    // 文件日志级别
+    options.stdout_level = spdlog::level::warn;  // 控制台日志级别
     LogManager::set_options(options);
 
     auto logger = LogManager::get_logger("module1");
@@ -38,9 +40,6 @@ int main()
     logger2->set_level(spdlog::level::trace);              // logger2的日志级别设置为 trace, 这个会优先过滤
     logger2->sinks()[0]->set_level(spdlog::level::trace);  // 设置 logger2 的文件 sink 日志级别为 trace
     logger2->sinks()[1]->set_level(spdlog::level::info);   // 设置 logger2 的文件 sink 日志级别为 info
-
-    // LogManager::setStdoutGlobalLevel(spdlog::level::info);  // 设置控制台日志级别为 info
-    // LogManager::setFileGlobalLevel(spdlog::level::warn);    // 设置文件日志级别为 warn
 
     logger->info("C++ 版本: {}", __cplusplus);
     logger2->info("C++ 版本: {}", __cplusplus);
