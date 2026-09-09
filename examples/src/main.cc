@@ -19,6 +19,14 @@ int main()
 #if defined(_WIN32)
     std::system("chcp 65001");  // 设置控制台为 UTF-8 编码
 #endif
+    // 推荐：在创建 logger 前集中设置日志配置。
+    log_manager_options options = LogManager::get_options();
+    options.save_path = "./logs";
+    options.max_size = 100 * 1024 * 1024;
+    options.max_files = 10;
+    options.retention_days = 30;
+    LogManager::set_options(options);
+
     auto logger = LogManager::get_logger("module1");
     std::cout << "日志测试程序开始运行1..." << '\n';
     logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%l] [%n] %v");

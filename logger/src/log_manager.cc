@@ -24,40 +24,10 @@ std::mutex &logger_mutex()
   return mtx;
 }
 
-spdlog::level::level_enum &default_file_level()
+log_manager_options &global_options()
 {
-  static spdlog::level::level_enum level = spdlog::level::info;
-  return level;
-}
-
-spdlog::level::level_enum &default_stdout_level()
-{
-  static spdlog::level::level_enum level = spdlog::level::warn;
-  return level;
-}
-
-std::string &save_path()
-{
-  static std::string path = "./logs";
-  return path;
-}
-
-std::size_t &max_size()
-{
-  static std::size_t size = 100 * 1024 * 1024;  // 默认 100MB
-  return size;
-}
-
-std::size_t &max_files()
-{
-  static std::size_t count = 10;  // 默认 10 个文件
-  return count;
-}
-
-std::size_t &retention_days()
-{
-  static std::size_t days = 30;  // 默认保留最近 30 天的日志目录
-  return days;
+  static log_manager_options options;
+  return options;
 }
 
 }  // namespace
@@ -79,16 +49,23 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
   auto it = loggers.find(module);
   if (it != loggers.end()) return it->second;
 
+  const log_manager_options manager_options = global_options();
+  daily_folder_rotating_sink_options sink_options;
+  sink_options.base_path = manager_options.save_path;
+  sink_options.log_filename = module + ".log";
+  sink_options.max_size = manager_options.max_size;
+  sink_options.max_files = manager_options.max_files;
+  sink_options.retention_days = manager_options.retention_days;
+
   // === 文件 Sink（每天一个文件夹）===
-  auto file_sink = std::make_shared<daily_folder_rotating_sink_mt>(save_path(), module + ".log", max_size(),
-                                                                   max_files(), retention_days());
+  auto file_sink = std::make_shared<daily_folder_rotating_sink_mt>(std::move(sink_options));
   file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-  file_sink->set_level(default_file_level());
+  file_sink->set_level(manager_options.file_level);
 
   // === 控制台 Sink（带颜色）===
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%n] %v");
-  console_sink->set_level(default_stdout_level());
+  console_sink->set_level(manager_options.stdout_level);
 
   // === 创建 logger（同时绑定多个 sink）===
   std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};  // 顺序不能变, 文件 sink 在前
@@ -97,6 +74,31 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
 
   loggers[module] = logger;
   return logger;
+}
+
+void LogManager::set_options(const log_manager_options &options)
+{
+  auto &loggers = logger_map();
+  std::lock_guard<std::mutex> lock(logger_mutex());
+
+  global_options() = options;
+  for (auto &pair : loggers)
+  {
+    if (!pair.second->sinks().empty())
+    {
+      pair.second->sinks()[0]->set_level(options.file_level);
+    }
+    if (pair.second->sinks().size() > 1)
+    {
+      pair.second->sinks()[1]->set_level(options.stdout_level);
+    }
+  }
+}
+
+log_manager_options LogManager::get_options()
+{
+  std::lock_guard<std::mutex> lock(logger_mutex());
+  return global_options();
 }
 
 bool LogManager::add_logger(std::shared_ptr<spdlog::logger> logger)
@@ -126,7 +128,7 @@ void LogManager::set_file_global_level(spdlog::level::level_enum level)
   auto &mtx = logger_mutex();
   std::lock_guard<std::mutex> lock(mtx);
 
-  default_file_level() = level;
+  global_options().file_level = level;
   for (auto &pair : loggers)
   {
     if (pair.second->sinks().size() > 0)
@@ -142,7 +144,7 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
   auto &mtx = logger_mutex();
   std::lock_guard<std::mutex> lock(mtx);
 
-  default_stdout_level() = level;
+  global_options().stdout_level = level;
   for (auto &pair : loggers)
   {
     if (pair.second->sinks().size() > 1)
@@ -155,19 +157,19 @@ void LogManager::set_stdout_global_level(spdlog::level::level_enum level)
 void LogManager::set_log_save_path(const std::string &path)
 {
   std::lock_guard<std::mutex> lock(logger_mutex());
-  save_path() = path;
+  global_options().save_path = path;
 }
 
 void LogManager::set_log_max_size(std::size_t size)
 {
   std::lock_guard<std::mutex> lock(logger_mutex());
-  if (size > 0) max_size() = size;
+  if (size > 0) global_options().max_size = size;
 }
 
 void LogManager::set_log_max_files(std::size_t count)
 {
   std::lock_guard<std::mutex> lock(logger_mutex());
-  if (count > 0) max_files() = count;
+  if (count > 0) global_options().max_files = count;
 }
 
 void LogManager::set_log_rotation(std::size_t log_max_size, std::size_t log_max_files)
@@ -179,7 +181,7 @@ void LogManager::set_log_rotation(std::size_t log_max_size, std::size_t log_max_
 void LogManager::set_log_retention_days(std::size_t days)
 {
   std::lock_guard<std::mutex> lock(logger_mutex());
-  retention_days() = days;
+  global_options().retention_days = days;
 }
 
 void LogManager::flush_all()

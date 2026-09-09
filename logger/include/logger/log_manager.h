@@ -2,8 +2,21 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <memory>
 #include <string>
+
+/**
+ * @brief LogManager 全局配置
+ */
+struct log_manager_options {
+  std::string save_path = "./logs";                              ///< 日志保存目录
+  std::size_t max_size = 100 * 1024 * 1024;                      ///< 单个日志文件最大大小（字节）
+  std::size_t max_files = 10;                                    ///< 最大滚动文件数量
+  std::size_t retention_days = 30;                               ///< 保留的历史日期目录天数
+  spdlog::level::level_enum file_level = spdlog::level::info;    ///< 文件日志级别
+  spdlog::level::level_enum stdout_level = spdlog::level::warn;  ///< 控制台日志级别
+};
 
 /**
  * @brief 全局日志管理器
@@ -24,6 +37,22 @@ class LogManager {
   LogManager(LogManager &&) = delete;                  ///< 禁止移动构造
   LogManager &operator=(LogManager &&) = delete;       ///< 禁止移动赋值
   ~LogManager() = default;
+
+  /**
+   * @brief 设置 LogManager 全局 options
+   *
+   * 保存路径、滚动策略和保留天数仅影响之后创建的 logger；
+   * 文件和控制台日志级别会同时更新所有已创建的 logger。
+   *
+   * @param options 新的日志配置
+   */
+  static void set_options(const log_manager_options &options);
+
+  /**
+   * @brief 获取当前统一日志配置
+   * @return 当前配置的线程安全副本
+   */
+  static log_manager_options get_options();
 
   /**
    * @brief 设置日志文件的保存目录
