@@ -63,4 +63,44 @@ root@ubuntu:/mlog/build_output/bin# tree
    #include "logger/log_manager.h"
    ```
 
+5. 推荐在创建 logger 前通过 options 集中设置日志参数：
 
+   ```cpp
+   log_manager_options options;
+   options.save_path = "./logs";
+   options.max_size = 100 * 1024 * 1024;
+   options.max_files = 10;
+   options.retention_days = 30;
+   options.file_level = spdlog::level::info;
+   options.stdout_level = spdlog::level::warn;
+
+   LogManager::set_options(options);
+   auto logger = LogManager::get_logger("module1");
+   logger->info("hello mlog");
+   ```
+
+   原有的 `set_log_save_path`、`set_log_rotation`、`set_log_retention_days` 等接口仍然可用。
+
+   单独调整某个模块的输出级别时，使用具名接口，不需要依赖 Sink 的排列顺序：
+
+   ```cpp
+   LogManager::set_file_level("module1", spdlog::level::debug);
+   LogManager::set_stdout_level("module1", spdlog::level::info);
+   ```
+
+   通过 `add_logger` 添加的外部 logger 只由 `LogManager` 管理生命周期和刷新；它的 Sink 配置仍由调用者负责。
+
+### 独立使用日期文件夹滚动 Sink
+
+`daily_folder_rotating_sink` 是 header-only 组件，可以不使用 `LogManager`，直接通过自己的 options 创建：
+
+```cpp
+daily_folder_rotating_sink_options options;
+options.base_path = "./logs";
+options.log_filename = "server.log";
+options.max_size = 50 * 1024 * 1024;
+options.max_files = 5;
+options.retention_days = 7;
+
+auto sink = std::make_shared<daily_folder_rotating_sink_mt>(options);
+```

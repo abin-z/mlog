@@ -25,6 +25,17 @@ namespace fs = ghc::filesystem;
 #endif
 
 /**
+ * @brief 日期文件夹滚动日志 Sink 配置
+ */
+struct daily_folder_rotating_sink_options {
+  fs::path base_path = "./logs";             ///< 基础日志目录
+  fs::path log_filename = "log.txt";         ///< 日志文件名
+  std::size_t max_size = 100 * 1024 * 1024;  ///< 单个日志文件最大大小（字节）
+  std::size_t max_files = 10;                ///< 最大滚动文件数量
+  std::size_t retention_days = 30;           ///< 保留的历史日期目录天数
+};
+
+/**
  * @brief 日期文件夹滚动日志 Sink
  *
  * 这个 Sink 会根据当前日期在 base_path 下创建每天独立的文件夹，然后在其中生成滚动日志文件。
@@ -39,7 +50,12 @@ namespace fs = ghc::filesystem;
  *
  * 使用示例：
  * @code
- * auto sink = std::make_shared<daily_folder_rotating_sink_mt>("./logs", "app.log", 100*1024*1024, 10);
+ * daily_folder_rotating_sink_options options;
+ * options.base_path = "./logs";
+ * options.log_filename = "app.log";
+ * options.max_size = 100 * 1024 * 1024;
+ * options.max_files = 10;
+ * auto sink = std::make_shared<daily_folder_rotating_sink_mt>(options);
  * sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
  * logger->sinks().push_back(sink);
  * @endcode
@@ -50,57 +66,61 @@ template <typename Mutex>
 class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> {
  public:
   /**
-   * @brief 构造函数
+   * @brief 使用 options 构造 Sink
+   * @param options Sink 配置
+   */
+  explicit daily_folder_rotating_sink(daily_folder_rotating_sink_options options) : options_(std::move(options))
+  {
+    roll_to_today();
+  }
+
+  /**
+   * @brief 使用位置参数构造 Sink（兼容旧接口）
    * @param base_path 基础日志路径，例如 "./logs"
    * @param log_filename 日志文件名，默认 "log.txt"
    * @param max_size 单个日志文件最大字节数，超过则滚动，默认 100MB
    * @param max_files 最大文件数量，超过则删除最早文件，默认 10
+   * @param retention_days 保留的历史日期目录天数，默认 30
    */
   explicit daily_folder_rotating_sink(std::string base_path, std::string log_filename = "log.txt",
-                                     size_t max_size = 100 * 1024 * 1024, size_t max_files = 10,
-                                     int retention_days = 30) :
-    base_path_(std::move(base_path)),
-    log_filename_(std::move(log_filename)),
-    max_size_(max_size),
-    max_files_(max_files),
-    retention_days_(std::max(0, retention_days))
-  {
-    roll_to_today();
-  }
+                                      size_t max_size = 100 * 1024 * 1024, size_t max_files = 10,
+                                      int retention_days = 30) :
+    daily_folder_rotating_sink(
+      make_options(std::move(base_path), std::move(log_filename), max_size, max_files, retention_days))
+  {}
   /** 设置单个日志文件最大大小 */
   void set_max_size(size_t max_size)
   {
-    max_size_ = max_size;
-    if (internal_sink_) internal_sink_->set_max_size(max_size_);
+    options_.max_size = max_size;
+    if (internal_sink_) internal_sink_->set_max_size(options_.max_size);
   }
   /** 设置最大日志文件数量 */
   void set_max_files(size_t max_files)
   {
-    max_files_ = max_files;
-    if (internal_sink_) internal_sink_->set_max_files(max_files_);
+    options_.max_files = max_files;
+    if (internal_sink_) internal_sink_->set_max_files(options_.max_files);
   }
   /** 获取单个日志文件最大大小 */
   std::size_t get_max_size() const noexcept
   {
     if (internal_sink_) return internal_sink_->get_max_size();
-    return max_size_;
+    return options_.max_size;
   }
   /** 获取最大日志文件数量 */
   std::size_t get_max_files() const noexcept
   {
     if (internal_sink_) return internal_sink_->get_max_files();
-    return max_files_;
+    return options_.max_files;
   }
   /** 设置保留的最近天数 */
   void set_retention_days(int retention_days)
   {
-    if (retention_days < 0) retention_days = 0;
-    retention_days_ = retention_days;
+    options_.retention_days = static_cast<std::size_t>(std::max(retention_days, 0));
   }
   /** 获取保留的最近天数 */
   int get_retention_days() const noexcept
   {
-    return retention_days_;
+    return static_cast<int>(options_.retention_days);
   }
   /** 获取当前正在写入的日志文件路径 */
   fs::path current_log_path() const noexcept
@@ -144,11 +164,20 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
   }
 
  private:
-  std::string base_path_;     ///< 基础日志目录
-  std::string log_filename_;  ///< 日志文件名
-  size_t max_size_;           ///< 单个文件最大字节数
-  size_t max_files_;          ///< 最大文件数量
-  int retention_days_;  // 保留最近多少天的日志目录, 0表示只保留今天, 1表示保留昨天+今天, 30表示保留最近30天+今天
+  daily_folder_rotating_sink_options options_;
+
+  static daily_folder_rotating_sink_options make_options(std::string base_path, std::string log_filename,
+                                                         std::size_t max_size, std::size_t max_files,
+                                                         int retention_days)
+  {
+    daily_folder_rotating_sink_options options;
+    options.base_path = std::move(base_path);
+    options.log_filename = std::move(log_filename);
+    options.max_size = max_size;
+    options.max_files = max_files;
+    options.retention_days = static_cast<std::size_t>(std::max(retention_days, 0));
+    return options;
+  }
 
   /** 内部实际使用的 rotating sink 类型（根据 Mutex 选择 mt 或 st） */
   using internal_sink_t =
@@ -195,19 +224,19 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
    *
    * 规则：
    *
-   * retention_days_ = 0
+   * options_.retention_days = 0
    *   保留今天
    *
-   * retention_days_ = 1
+   * options_.retention_days = 1
    *   保留昨天 + 今天
    *
-   * retention_days_ = 30
+   * options_.retention_days = 30
    *   保留最近30天 + 今天
    */
   void clean_old_directories(const std::tm &current_tm)
   {
     std::error_code eec;
-    if (!fs::exists(base_path_, eec) || eec)
+    if (!fs::exists(options_.base_path, eec) || eec)
     {
       report_error("Base path does not exist or error: " + eec.message() + ", skipping cleanup");
       return;
@@ -221,7 +250,7 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
     std::time_t cutoff_time = std::mktime(&cutoff_tm);
 
     // 往前推保留天数
-    cutoff_time -= static_cast<std::time_t>(retention_days_) * 24 * 60 * 60;
+    cutoff_time -= static_cast<std::time_t>(options_.retention_days) * 24 * 60 * 60;
     std::tm limit_tm{};
 
 #if defined(_WIN32)
@@ -240,7 +269,7 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
       throw spdlog::spdlog_ex("Failed to format cutoff date");
     }
     std::error_code diec;
-    for (fs::directory_iterator it(base_path_, diec), end; it != end && !diec; ++it)
+    for (fs::directory_iterator it(options_.base_path, diec), end; it != end && !diec; ++it)
     {
       if (!it->is_directory())
       {
@@ -301,16 +330,17 @@ class daily_folder_rotating_sink final : public spdlog::sinks::base_sink<Mutex> 
     {
       throw spdlog::spdlog_ex("Invalid date format");
     }
-    const fs::path folder = fs::path(base_path_) / date_buffer;
+    const fs::path folder = options_.base_path / date_buffer;
 
     ensure_directory(folder);
 
-    const fs::path log_path = folder / log_filename_;
+    const fs::path log_path = folder / options_.log_filename;
 
     current_log_path_ = log_path;
 
     // 创建新的 rotating sink
-    auto new_sink = spdlog::details::make_unique<internal_sink_t>(log_path.string(), max_size_, max_files_, false);
+    auto new_sink =
+      spdlog::details::make_unique<internal_sink_t>(log_path.string(), options_.max_size, options_.max_files, false);
 
     // 保留 formatter
     if (this->formatter_) new_sink->set_formatter(this->formatter_->clone());
