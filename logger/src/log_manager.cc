@@ -11,10 +11,11 @@
 
 namespace
 {
+// 保存一个模块的 logger 及其输出目标，供 LogManager 查找和调整配置。
 struct logger_entry {
-  std::shared_ptr<spdlog::logger> logger;
-  spdlog::sink_ptr file_sink;
-  spdlog::sink_ptr stdout_sink;
+  std::shared_ptr<spdlog::logger> logger;  // 模块 logger，负责接收业务日志。
+  spdlog::sink_ptr file_sink;              // 文件输出目标，可单独设置日志级别。
+  spdlog::sink_ptr stdout_sink;            // 控制台输出目标，可单独设置日志级别。
 };
 
 // 局部静态资源
