@@ -73,6 +73,7 @@ root@ubuntu:/mlog/build_output/bin# tree
    options.retention_days = 30;
    options.file_level = spdlog::level::info;
    options.stdout_level = spdlog::level::warn;
+   options.flush_level = spdlog::level::warn;
 
    LogManager::set_options(options);
    auto logger = LogManager::get_logger("module1");
@@ -88,7 +89,8 @@ root@ubuntu:/mlog/build_output/bin# tree
    LogManager::set_stdout_level("module1", spdlog::level::info);
    ```
 
-   通过 `add_logger` 添加的外部 logger 只由 `LogManager` 管理生命周期和刷新；它的 Sink 配置仍由调用者负责。
+   `flush_level` 控制自动刷新的最低日志级别，默认 `warn`（warning 及以上日志写入后刷新所有 Sink）。
+   通过 `add_logger` 添加的外部 logger 只由 `LogManager` 管理生命周期和手动刷新；它的日志及 Sink 配置仍由调用者负责。
 
 ### 独立使用日期文件夹滚动 Sink
 

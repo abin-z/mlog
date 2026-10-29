@@ -9,6 +9,7 @@ int main()
 {
   log_manager_options options;
   options.save_path = "./test_logs";
+  assert(options.flush_level == spdlog::level::warn);
   LogManager::set_options(options);
 
   const auto managed_logger = LogManager::get_logger("managed");
@@ -16,12 +17,19 @@ int main()
   const auto stdout_sink = LogManager::get_stdout_sink("managed");
 
   assert(managed_logger);
+  assert(managed_logger->flush_level() == spdlog::level::warn);
   assert(file_sink);
   assert(stdout_sink);
   assert(LogManager::set_file_level("managed", spdlog::level::debug));
   assert(LogManager::set_stdout_level("managed", spdlog::level::err));
   assert(file_sink->level() == spdlog::level::debug);
   assert(stdout_sink->level() == spdlog::level::err);
+
+  options.flush_level = spdlog::level::err;
+  LogManager::set_options(options);
+  assert(managed_logger->flush_level() == spdlog::level::err);
+  const auto new_managed_logger = LogManager::get_logger("managed_with_custom_flush");
+  assert(new_managed_logger->flush_level() == spdlog::level::err);
 
   assert(!LogManager::get_file_sink("missing"));
   assert(!LogManager::get_stdout_sink("missing"));
@@ -39,7 +47,12 @@ int main()
   const auto external_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
   external_sink->set_level(spdlog::level::trace);
   const auto external_with_sink = std::make_shared<spdlog::logger>("external_with_sink", external_sink);
+  external_with_sink->flush_on(spdlog::level::critical);
   assert(LogManager::add_logger(external_with_sink));
+
+  options.flush_level = spdlog::level::trace;
+  LogManager::set_options(options);
+  assert(external_with_sink->flush_level() == spdlog::level::critical);
 
   LogManager::set_file_global_level(spdlog::level::critical);
   LogManager::set_stdout_global_level(spdlog::level::off);

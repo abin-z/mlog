@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "logger/daily_folder_rotating_sink.h"
+#include "spdlog/common.h"
 
 namespace
 {
@@ -16,6 +17,7 @@ struct logger_entry {
   std::shared_ptr<spdlog::logger> logger;  // 模块 logger，负责接收业务日志。
   spdlog::sink_ptr file_sink;              // 文件输出目标，可单独设置日志级别。
   spdlog::sink_ptr stdout_sink;            // 控制台输出目标，可单独设置日志级别。
+  bool managed_by_log_manager = false;     // 是否由 LogManager 创建并配置。
 };
 
 // 局部静态资源
@@ -77,12 +79,14 @@ std::shared_ptr<spdlog::logger> LogManager::get_logger(const std::string &module
   // === 创建 logger（同时绑定多个 sink）===
   std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
   auto logger = std::make_shared<spdlog::logger>(module, sinks.begin(), sinks.end());
+  logger->flush_on(manager_options.flush_level);
   spdlog::register_logger(logger);
 
   logger_entry entry;
   entry.logger = logger;
   entry.file_sink = file_sink;
   entry.stdout_sink = console_sink;
+  entry.managed_by_log_manager = true;
   loggers[module] = std::move(entry);
   return logger;
 }
@@ -140,6 +144,10 @@ void LogManager::set_options(const log_manager_options &options)
     if (pair.second.stdout_sink)
     {
       pair.second.stdout_sink->set_level(options.stdout_level);
+    }
+    if (pair.second.managed_by_log_manager && pair.second.logger)
+    {
+      pair.second.logger->flush_on(options.flush_level);
     }
   }
 }

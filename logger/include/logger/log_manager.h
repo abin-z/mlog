@@ -17,6 +17,7 @@ struct log_manager_options {
   std::size_t retention_days = 30;                               ///< 保留的历史日期目录天数
   spdlog::level::level_enum file_level = spdlog::level::info;    ///< 文件日志级别
   spdlog::level::level_enum stdout_level = spdlog::level::warn;  ///< 控制台日志级别
+  spdlog::level::level_enum flush_level = spdlog::level::warn;   ///< 自动刷新的最低日志级别
 };
 
 /**
@@ -43,7 +44,8 @@ class LogManager {
    * @brief 设置 LogManager 全局 options
    *
    * 保存路径、滚动策略和保留天数仅影响之后创建的 logger；
-   * 文件和控制台日志级别会同时更新 LogManager 自身创建的所有 logger。
+   * 文件、控制台日志级别及自动刷新级别会同时更新 LogManager 自身创建的所有 logger；
+   * 外部添加的 logger 配置仍由调用者负责。
    *
    * @param options 新的日志配置
    */
