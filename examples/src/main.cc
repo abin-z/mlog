@@ -27,6 +27,7 @@ int main()
     options.retention_days = 30;
     options.file_level = spdlog::level::info;    // 文件日志级别
     options.stdout_level = spdlog::level::warn;  // 控制台日志级别
+    options.flush_level = spdlog::level::warn;   // 自动刷新级别
     LogManager::set_options(options);
 
     auto logger = LogManager::get_logger("module1");
